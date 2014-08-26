@@ -1,0 +1,180 @@
+#!/bin/sh
+# Copyright (C) 2009-2014 Francois Gouget
+#
+# Provides cross-platform support for powering off, rebooting or suspending the
+# computer.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+name0=`basename "$0"`
+
+error()
+{
+    echo "$name0:error:" "$@" >&2
+}
+
+opt_dry_run=""
+dry_run()
+{
+    if [ -n "$opt_dry_run" ]
+    then
+        echo "$@"
+    else
+        "$@"
+    fi
+}
+
+
+#
+# Command line processing
+#
+opt_action=""
+usage=""
+while [ $# -gt 0 ]
+do
+    arg="$1"
+    shift
+    case "$arg" in
+        poweroff|reboot|suspend|hibernate)
+            opt_action="$arg"
+            ;;
+        --dry-run)
+            opt_dry_run="1"
+            ;;
+        --help|-h|-?)
+            usage=0
+            break
+            ;;
+        *)
+            error "unknown option '$arg'"
+            usage=2
+            break
+    esac
+done
+
+if [ -z "$usage" ]
+then
+    if [ -z "$opt_action" ]
+    then
+        error "you must specify the action to perform"
+        usage=2
+    fi
+fi
+
+if [ "$usage" = "0" ]
+then
+    echo "Usage: $name0 [--help] [poweroff|reboot|suspend]"
+    echo
+
+    echo "Powers off, reboots, suspends or hibernates the computer."
+    echo
+
+    echo "Where:"
+    echo "  poweroff     Powers off the computer."
+    echo "  reboot       Reboots the computer."
+    echo "  suspend      Suspends the computer."
+    echo "  hibernate    Hibernates the computer."
+    echo "  --help, -h   Shows this help message."
+    exit 0
+elif [ -n "$usage" ]
+then
+    error "try '$name0 --help' for more information"
+    exit $usage
+fi
+
+platform=`uname -s`
+if [ "$platform" = "Darwin" ]
+then
+    # Remap the actions to the Mac OS X names
+    case "$opt_action" in
+        poweroff)  opt_action="shut down" ;;
+        reboot)    opt_action="restart" ;;
+        suspend)   opt_action="sleep" ;;
+        hibernate)
+            error "hibernate is not supported yet on Mac OS X"
+            exit 1
+            ;;
+    esac
+            
+    # Only trigger the shutdown after this script and thus 'Terminal'
+    # are done otherwise we'll be stuck waiting for confirmation from
+    # the user.
+    (
+        sleep 5
+        dry_run osascript -e "tell application \"finder\" to $opt_action"
+    ) &
+
+else
+    # Older systems use a combination of ConsoleKit and UPower while newer
+    # systems use Systemd.Logind. Try to support each of them and also sudo
+    # as a fallback for systems that don't use the standard D-Bus methods.
+    # See:
+    # http://www.freedesktop.org/wiki/Software/systemd/logind/
+    # http://upower.freedesktop.org/docs/UPower.html
+    # http://www.freedesktop.org/software/ConsoleKit/doc/ConsoleKit.html
+
+    try_dbus()
+    {
+        call="$1"
+        shift
+        dest=`echo $call | cut -d: -f1`
+        path=`echo "/$call" | cut -d: -f1-2 | sed -e 's%:$%%' -e 's%\.%/%g' -e 's%::*%/%g'`
+        method=`echo $call | sed -e 's%::*%.%g'`
+        if [ -n "$opt_dry_run" ]
+        then
+            echo "dbus-send --print-reply --system --dest=$dest $path $method" "$@"
+            return 1
+        fi
+        err=`dbus-send --print-reply --system --dest=$dest $path $method "$@" 2>&1`
+        rc=$?
+        if echo $err | grep -i 'unknown'
+        then
+            # Try the next method
+            return 1
+        fi
+        exit $rc
+    }
+
+    case "$opt_action" in
+        poweroff)
+            # UPower does not support poweroff.
+            try_dbus org.freedesktop.login1::Manager.PowerOff boolean:true || \
+                try_dbus org.freedesktop.ConsoleKit:Manager:Stop || \
+                dry_run sudo /usr/sbin/poweroff
+            ;;
+
+        reboot)
+            # UPower does not support rebooting.
+            try_dbus org.freedesktop.login1::Manager.Reboot boolean:true || \
+                try_dbus org.freedesktop.ConsoleKit:Manager:Restart || \
+                dry_run sudo /sbin/reboot
+            ;;
+
+        suspend)
+            # ConsoleKit does not support suspending.
+            try_dbus org.freedesktop.login1::Manager.HybridSleep boolean:true || \
+                try_dbus org.freedesktop.login1::Manager.Suspend boolean:true || \
+                try_dbus org.freedesktop.UPower::Suspend || \
+                dry_run sudo /usr/sbin/pm-suspend-hybrid || \
+                dry_run sudo /usr/sbin/pm-suspend
+            ;;
+
+        hibernate)
+            # ConsoleKit does not support hibernating.
+            try_dbus org.freedesktop.login1::Manager.Hibernate boolean:true || \
+                try_dbus org.freedesktop.UPower::Hibernate || \
+                dry_run sudo /usr/sbin/pm-hibernate
+            ;;
+    esac
+fi
