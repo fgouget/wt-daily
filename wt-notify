@@ -1,0 +1,100 @@
+#!/bin/sh
+# Copyright (C) 2014 Francois Gouget
+#
+# Displays a notification message to the user.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+name0=`basename "$0"`
+
+error()
+{
+    echo "$name0:error:" "$@" >&2
+}
+
+
+#
+# Command line processing
+#
+
+opt_msg=""
+usage=""
+while [ $# -gt 0 ]
+do
+    arg="$1"
+    shift
+    if [ "$arg" = "--help" -o "$arg" = "-h" -o "$arg" = "-?" ]
+    then
+        usage=0
+        break
+    elif [ -z "$opt_msg" ]
+    then
+        opt_msg="$arg"
+    else
+        error "unknown option '$arg'"
+        usage=2
+        break
+    fi
+done
+
+if [ -z "$usage" ]
+then
+    if [ -z "$opt_msg" ]
+    then
+        error "you must provide the text of the notification"
+        usage=2
+    fi
+fi
+
+if [ "$usage" = "0" ]
+then
+    echo "Usage: $name0 [--help] MESSAGE"
+    echo
+
+    echo "Displays a notification to the user."
+    echo
+
+    echo "Where:"
+    echo "  MESSAGE      This is the text of the notification."
+    echo "  --help, -h   Shows this help message."
+    exit 0
+elif [ -n "$usage" ]
+then
+    error "try '$name0 --help' for more information"
+    exit $usage
+fi
+
+
+#
+# Display the notification
+#
+
+echo "$opt_msg"
+
+if type osascript >/dev/null 2>&1
+then
+    # This does not work on Snow Leopard and lower :-(
+    exec osascript <<EOF
+tell application "System Events"
+    display notification "$opt_msg"
+end tell
+EOF
+
+elif type notify-send >/dev/null 2>&1
+then
+    DISPLAY=:0.0 exec notify-send "$opt_msg"
+
+else
+    DISPLAY=:0.0 exec zenity --notification --window-icon info --text "$opt_msg" 2>/dev/null &
+fi
