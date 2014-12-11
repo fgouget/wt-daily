@@ -92,5 +92,10 @@ res = NSAlert.alertWithMessageText_defaultButton_alternateButton_otherButton_inf
 import sys
 sys.exit(res)"
 else
-    DISPLAY=:0.0 exec zenity --question --text "$opt_msg" 2>/dev/null
+    if [ -z "$DISPLAY" ]
+    then
+        DISPLAY=":0.0"
+        export DISPLAY
+    fi
+    exec zenity --question --text "$opt_msg" 2>/dev/null
 fi

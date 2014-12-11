@@ -93,8 +93,18 @@ EOF
 
 elif type notify-send >/dev/null 2>&1
 then
-    DISPLAY=:0.0 exec notify-send "$opt_msg"
+    if [ -z "$DISPLAY" ]
+    then
+        DISPLAY=":0.0"
+        export DISPLAY
+    fi
+    exec notify-send "$opt_msg"
 
 else
-    DISPLAY=:0.0 exec zenity --notification --window-icon info --text "$opt_msg" 2>/dev/null &
+    if [ -z "$DISPLAY" ]
+    then
+        DISPLAY=":0.0"
+        export DISPLAY
+    fi
+    exec zenity --notification --window-icon info --text "$opt_msg" 2>/dev/null &
 fi
