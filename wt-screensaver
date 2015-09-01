@@ -123,7 +123,7 @@ if ($opt_action eq "suspend")
     if (!$rc)
     {
         sleep($opt_timeout);
-        # We could reenable the screensaver but simply terminating should be
+        # We could re-enable the screensaver but simply terminating should be
         # enough system("xdg-screensaver resume $hexid");
     }
 }
