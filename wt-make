@@ -1,0 +1,213 @@
+#!/usr/bin/perl
+# (c) Copyright 2008, 2010, 2013. CodeWeavers, Inc.
+#
+# Seeks to automatically fully use CPU and I/O parallelism when running make.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+use warnings;
+use strict;
+
+my $name0=$0;
+$name0 =~ s!^.*/!!;
+
+my $verbose=1;
+
+# Portable which(1) implementation
+sub cxwhich($$;$)
+{
+    my ($dirs, $app, $noexec)=@_;
+    if ($app =~ /^\//)
+    {
+        return $app if ((-x $app or $noexec) and -f $app);
+    }
+    elsif ($app =~ /\//)
+    {
+        require Cwd;
+        my $path=Cwd::cwd() . "/$app";
+        return $path if ((-x $path or $noexec) and -f $path);
+    }
+    else
+    {
+        foreach my $dir (split /:/, $dirs)
+        {
+            return "$dir/$app" if ($dir ne "" and (-x "$dir/$app" or $noexec) and -f "$dir/$app");
+        }
+    }
+    return undef;
+}
+
+
+# Some Makefiles will only work with GNU make. So use gmake if it exists
+# (this also helps on FreeBSD).
+my $topmake=$ENV{MAKE};
+$topmake="gmake" if (!defined $topmake and cxwhich($ENV{PATH}, "gmake"));
+if (!defined $topmake and cxwhich($ENV{PATH}, "colormake"))
+{
+    # We don't want fancy color escape codes in log files
+    require POSIX;
+    $topmake="colormake" if (POSIX::isatty(1));
+}
+$topmake="make" if (!defined $ENV{MAKE} and cxwhich($ENV{PATH}, "make"));
+if (!defined $topmake)
+{
+    print STDERR "$name0:error: make is not available\n";
+    exit 1;
+}
+
+my @job_opts;
+if (@ARGV and $ARGV[0] =~ /^-j/)
+{
+    # Looks like the number of jobs has been specified on the command line
+    # Don't mess with it
+}
+elsif (!defined $ENV{MAKE_JOBS})
+{
+    # Figure out how many CPUs we have to play with
+    my $ncpus;
+    if (open(my $fh, "<", "/proc/cpuinfo"))
+    {
+        # Linux
+        map { $ncpus++ if (/^processor/); } <$fh>;
+        close($fh);
+    }
+    if (!$ncpus and cxwhich($ENV{PATH}, "sysctl"))
+    {
+        # Mac OS X
+        $ncpus=`sysctl -n hw.activecpu 2>/dev/null`;
+        # FreeBSD
+        $ncpus=`sysctl -n hw.ncpu 2>/dev/null` if (!$ncpus);
+        chomp $ncpus;
+    }
+    if (!$ncpus and -x "/usr/sbin/psrinfo")
+    {
+        # Solaris
+        $ncpus=`/usr/sbin/psrinfo -p 2>/dev/null`;
+        chomp $ncpus;
+    }
+    if (!$ncpus)
+    {
+        print STDERR "$name0:warning: unknown system, assuming only one CPU\n";
+        $ncpus=1;
+    }
+
+    # Check for distcc
+    my $ljobs=$ncpus;
+    my $rjobs=0;
+    my $rhosts=0;
+    if (cxwhich($ENV{PATH}, "distcc"))
+    {
+        my $distcc_hosts=$ENV{DISTCC_HOSTS};
+        my $hosts_file="$ENV{HOME}/.distcc/hosts";
+        if (!defined $distcc_hosts and -f $hosts_file)
+        {
+            if (open(my $fh, "<", $hosts_file))
+            {
+                $distcc_hosts="";
+                while (my $line = <$fh>)
+                {
+                    next if ($line =~ /^\s*#/);
+                    $distcc_hosts.=" $line";
+                }
+                close($fh);
+            }
+            else
+            {
+                print STDERR "$name0:warning: unable to open '$hosts_file' for reading: $!\n";
+            }
+        }
+
+        my %remote_hosts;
+        foreach my $hostspec (split /\s+/, $distcc_hosts || "")
+        {
+            next if ($hostspec !~ /^(?:\S+@)?([a-zA-Z0-9.]+)(?:\/([0-9]+))?/);
+            my ($host, $limit)=($1, $2);
+            if ($host eq "localhost")
+            {
+                # 2 is the distcc default for localhost
+                $ljobs=(defined $limit ? $limit : 2);
+            }
+            else
+            {
+                # 4 is the distcc default for remote hosts
+                # Note that for maximum performance it's best to start enough
+                # jobs per remote CPU so that there's always a compilation
+                # going on while the result of the previous one is being sent,
+                # and the data for the next one is being received.
+                # If compilation is much longer than the network transfers,
+                # then two jobs could be enough. If they are of similar
+                # duration, then at least 3 jobs are needed. Having more
+                # probably does not hurt much (no disk trashing on the remote
+                # host).
+                $remote_hosts{$host}=(defined $limit ? $limit : 4);
+            }
+        }
+
+        # Figure out how many remote hosts we can really count on so we know
+        # how many local jobs to start. fping lets us ping all hosts at once
+        # and wait only 50 milliseconds.
+        my $cmd="fping -q -c1 -t50 '". join("' '", keys %remote_hosts) ."'";
+        if (%remote_hosts and open(my $fh, "$cmd 2>&1 |"))
+        {
+            while (my $line =<$fh>)
+            {
+                if ($line =~ m!^(\S+)\s*:[^=]*=\s*1/1!)
+                {
+                    $rjobs+=($remote_hosts{$1} || 0);
+                    $rhosts++;
+                }
+            }
+            close($fh);
+        }
+        else
+        {
+            # Just assume all the remote hosts are there
+            map { $rjobs+=$_; $rhosts++; } values %remote_hosts;
+        }
+
+        $ENV{CCACHE_PREFIX}="distcc" if ($rhosts > 0);
+    }
+
+    print "Found $ncpus CPU(s). Running $ljobs local job(s) and $rjobs remote job(s) on $rhosts host(s).\n" if ($verbose);
+    if ($rhosts > 0)
+    {
+        # - We need at least one make job per local and remote job.
+        # - Start an extra $rhosts+1 jobs so we have jobs ready when
+        #   a remote hosts asks for more.
+        # - We also need extra jobs so the link, install, ccache hits and
+        #   other make tasks don't leave the remote hosts waiting for more
+        #   stuff to compile.
+        # - Don't limit the load when there are remote jobs.
+        #   Even with 8 remote jobs, the load on the local host remains < 1
+        #   if it's not doing any compiling. But if make hits the load limit
+        #   it will only process one job at a time, which will provide no
+        #   significant local load reduction but will leave the remote hosts
+        #   mostly idle. If localhost is the first in $DISTCC_HOSTS it will
+        #   even result in all the work being done on the local host!
+        #   In other words, with distcc load limiting should be done by
+        #   distcc itself, not by make.
+        @job_opts=("-j", $ljobs+$rjobs+$rhosts+1);
+    }
+    elsif ($ncpus > 1)
+    {
+        @job_opts=("-j", $ncpus, "-l", 1+3*$ncpus);
+    }
+}
+elsif ($ENV{MAKE_JOBS} ne "1")
+{
+    @job_opts=("-j", $ENV{MAKE_JOBS}, "-l", 1+3*$ENV{MAKE_JOBS});
+}
+
+print "Command: ", join(" ", $topmake, @job_opts, @ARGV), "\n" if ($verbose);
+exec $topmake, @job_opts, @ARGV;
