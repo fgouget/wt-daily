@@ -1,0 +1,125 @@
+REM Copyright (C) 2012-2015 Francois Gouget
+REM 
+REM Downloads and runs WineTest.
+REM
+REM This program is free software; you can redistribute it and/or
+REM modify it under the terms of the GNU General Public
+REM License as published by the Free Software Foundation; either
+REM version 2.1 of the License, or (at your option) any later version.
+REM
+REM This program is distributed in the hope that it will be useful,
+REM but WITHOUT ANY WARRANTY; without even the implied warranty of
+REM MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+REM General Public License for more details.
+REM
+REM You should have received a copy of the GNU General Public
+REM License along with this library; if not, write to the Free Software
+REM Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+
+REM One would typically set up Windows to log in automatically and then put
+REM this script in the shell:startup folder. On Windows >= Vista one could use
+REM the command below instead to run the script with elevated privileges:
+REM schtasks /create /sc onlogon /tn wt-daily /rl highest /tr "c:\path\to\wt-daily.bat"
+
+REM Figure out on what host and Windows version we are running on.
+for /f "tokens=2 delims=[]" %%i in ('ver') do set WINVER=%%i
+set WINVER=%WINVER:Version =%
+for /f "tokens=1-2 delims=." %%i in ("%WINVER%") do set WINVER=%%i.%%j
+
+for /f "tokens=*" %%i in ('hostname') do set HOSTNAME=%%i
+
+
+REM **** DO NOT QUOTE EMPTY CONFIGURATION VALUES *****
+
+REM WineTest needs a valid email address so Wine developers can contact you
+REM if they have questions about a failing Wine test.
+set email=
+
+REM It is possible to consolidate multiple scripts into one by checking
+REM the %HOSTNAME% and %WINVER% environment variables. For instance:
+REM if %HOSTNAME% neq host1 goto host2
+REM if %WINVER% neq 6.2 goto host1v2
+
+REM For each test specify:
+REM - tag
+REM   WineTest's tag identifying this test configuration.
+REM - desc
+REM   A string describing this test configuration. This is meant to help Wine
+REM   developers figure out what could impact the test results like which
+REM   graphics card you have, the graphics driver, your locale if non-English,
+REM   etc.
+
+REM If tag32 is non empty then the 32 bit tests will be run.
+set tag32=
+set desc32=
+
+REM If tag64 is non empty then the 64 bit tests will be run.
+set tag64=
+set desc64=
+
+REM If set to -s the computer will be powered off after the tests.
+REM If set to -r it will be rebooted. Otherwise it will keep running.
+set shutdown=-s
+goto start
+
+REM :host2
+REM set tag32=
+REM set desc32=
+REM set tag64=
+REM set desc64=
+REM set shutdown=-s
+REM goto start
+
+:unknown
+echo Unknown host + Windows version combination: %HOSTNAME% - %WINVER%
+goto shutdown
+
+
+:start
+REM Remember to disable the anti-virus and any other
+REM application that may interfere with the tests.
+ping -n 31 127.0.0.1 >nul
+
+REM Wait until the network is up.
+ping -n 1 test.winehq.org
+if %errorlevel% == 1 goto start
+
+
+REM Place the files on the desktop so they are easy to
+REM find in case they need to be reviewed later on.
+for /f "delims='" %%i in ('powershell.exe -Command "[Environment]::GetFolderPath(\"Desktop\")"') do set DESKTOPDIR=%%i
+cd /d "%DESKTOPDIR%"
+
+REM Download the latest version of winetest
+:wget32
+powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://test.winehq.org/builds/winetest-latest.exe', 'winetest32.exe')"
+if %errorlevel% neq 0 goto wget32
+
+:wget64
+if "%tag64%" equ "" goto run32
+powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://test.winehq.org/builds/winetest64-latest.exe', 'winetest64.exe')"
+if %errorlevel% neq 0 goto wget64
+
+
+:run32
+REM Run the 32-bit tests and store the report locally
+winetest32.exe -c -o winetest32.report -t %tag32% -m %email% -i %desc32% >winetest32.log 2>&1
+
+REM Send the 32-bit report
+winetest32.exe -s winetest32.report
+
+
+:run64
+REM Run the 64-bit tests and store the report locally
+if "%tag64%" equ "" goto shutdown
+winetest64.exe -c -o winetest64.report -t %tag64% -m %email% -i %desc64% >winetest64.log 2>&1
+
+REM Send the 64-bit report
+winetest64.exe -s winetest64.report
+
+
+:shutdown
+if "%shutdown%" equ "" goto done
+shutdown %shutdown%
+
+:done

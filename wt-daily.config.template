@@ -1,0 +1,130 @@
+#####
+#
+# Configuration file for wt-daily
+#
+#####
+
+# Defines the directory where to store the files for the daily tests.
+#
+# This directory has the following structure:
+#   src        - The Wine source.
+#   wine       - The 32 bit Wine build.
+#   wow32      - The 32 bit Wine build for the mixed 32/64 build.
+#   wow64      - The 64 bit Wine build for the mixed 32/64 build.
+#   wineprefix - The Wine prefix used for the tests.
+#   winetest   - The WineTest files.
+test_root="$dir0/winetest"
+
+# WineTest needs a valid email address so Wine developers can contact you
+# if they have questions about a failing Wine test
+email=""
+
+# For each test specify:
+# - tag
+#   WineTest's tag identifying this test configuration
+# - desc
+#   A string describing this test configuration. This is meant to help Wine
+#   developers figure out what could impact the test results like which
+#   graphics card you have, the graphics driver (open-source/proprietary),
+#   your locale if non-English, etc.
+# - exclude
+#   Tests to exclude because you know that cannot work on your machine.
+#   You should really not have to use this field: it's better to adjust the
+#   system's configuration so all the tests can run. Furthermore if you exclude
+#   too many tests your results will be rejected.
+
+# If tag is non empty then the regular 32 bit tests will be run.
+tag=""
+desc=""
+exclude=""
+
+# If tagmac is non empty then the regular 32 bit tests will be run using the
+# Mac graphics driver. This obviously only makes sense on Mac OS/X.
+tagmac=""
+descmac=""
+excludemac=""
+
+# If tagwow32 is non empty then the 32 bit tests will be run in a Wine prefix
+# supporting 32 and 64 bit applications.
+tagwow32=""
+descwow32=""
+excludewow32=""
+
+# If tagwow64 is non empty then the 64 bit tests will be run in a Wine prefix
+# supporting 32 and 64 bit applications.
+tagwow64=""
+descwow64=""
+excludewow64=""
+
+# A space-separated list of wt-image files to reboot to so they can run the
+# tests.
+otheroses=""
+
+# If non-empty this value will be passed to wt-power once all the tests have
+# been run. This makes it possible to automatically shut down the machine
+# after running the tests for instance.
+shutdown=""
+
+# A set of default options. They can be overridden by options specified on the
+# command line.
+default_options=""
+
+
+#####
+#
+# Hooks for extra tasks
+#
+#####
+
+# Use this to get the user's input before wt-daily asks its own questions.
+# This function is invoked in a subshell and will block the tests until it
+# returns. "$flock" "$ready_lock" will return as soon as the tests are ready
+# to run which you can use as a timeout for answering the question.
+pre_interactive()
+{
+    # For instance uncomment the line below to watch TV while wt-daily does
+    # the builds and ensure the tests will only start once you're done.
+    # mythfrontend
+    return
+}
+
+# Use this to get the user's input after wt-daily has asked its questions.
+# See pre_interactive() for more details.
+post_interactive()
+{
+    return
+}
+
+# Called before updating the Wine source.
+#
+# See the register_xxx_task() functions for how to handle background tasks.
+# For instance to ensure the tests will not start until mytask is done,
+# register it as a build task:
+#   mytask &
+#   register_build_task $!
+pre_update()
+{
+    return
+}
+
+# Called after the update tasks and before starting the build ones.
+# Note that this is always called, even if --no-build was specified.
+# Skip tasks if [ "$opt_build" != "1" ].
+pre_build()
+{
+    return
+}
+
+# Called after the build tasks and before starting the test ones.
+# Note that this is always called, even if --no-test was specified.
+# Skip tasks if [ "$opt_test" != "1" ].
+pre_test()
+{
+    return
+}
+
+# Called after the test tasks.
+post_test()
+{
+    return
+}

@@ -1,0 +1,707 @@
+#!/bin/sh
+# Copyright (C) 2009-2015 Francois Gouget
+#
+# Orchestrates all the daily WineTest runs and related tasks.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+name0=`basename "$0"`
+case "$0" in
+/*)  dir0="$0" ;;
+*/*) dir0=`pwd`/"$0" ;;
+*)   dir0=`which "$0" || echo \`pwd\`/"$0"` ;;
+esac
+dir0=`realpath "$dir0" 2>/dev/null || echo "$dir0"`
+dir0=`dirname "$dir0"`
+
+
+#####
+#
+# Helpers and functions for the user tasks
+#
+#####
+
+platform=`uname -s`
+hostname=`hostname | cut -d. -f1`
+
+flock="flock"
+which flock >/dev/null || flock="$dir0/pflock"
+
+nice="$dir0/wt-nice"
+[ -x "$nice" ] || nice="nice -n 20"
+
+error()
+{
+    echo "$name0:error:" "$@" >&2
+}
+
+opt_dry_run=""
+dry_run()
+{
+    if [ -n "$opt_dry_run" ]
+    then
+        echo "$@"
+    else
+        "$@"
+    fi
+}
+
+kill_children()
+{
+    # $$ is not updated in subshells and $BASHPID is not portable :-(
+    shell_pid=`sh -c 'echo $PPID'`
+    [ -n "$shell_pid" -a "$shell_pid" != "1" ] && \
+        kill `pgrep -P $shell_pid 2>/dev/null`
+    exit 0
+}
+
+# Use run() to ensure the specified command will be terminated even if the shell
+# is killed.
+run()
+{
+    trap kill_children INT TERM
+    # The shell ignores signals while running a command, but not while in wait.
+    "$@" &
+    wait $!
+}
+
+do_pause()
+{
+    while true
+    do
+        run=`cat "$test_root/run" 2>/dev/null`
+        if [ "$run" = "cancel" ]
+        then
+            rm -f "$test_root/run"
+            echo "aborting this $name0 run"
+            exit 0
+        elif [ "$run" != "pause" ]
+        then
+            break
+        fi
+        sleep 10
+    done
+}
+
+# Use register_update_task() to identify background tasks that must be
+# completed before building Wine.
+update_tasks=""
+register_update_task()
+{
+    update_tasks="$update_tasks $1"
+}
+
+# Use register_build_task() to identify background tasks that must be
+# completed before running the Wine tests.
+build_tasks=""
+register_build_task()
+{
+    build_tasks="$build_tasks $1"
+}
+
+# Use register_interactive_task() to identify interactive background tasks that
+# must be completed before starting the Wine tests.
+interactive_tasks=""
+register_interactive_task()
+{
+    interactive_tasks="$interactive_tasks $1"
+}
+
+# Use register_other_task() to identify background tasks that must be
+# completed before the script exits (and shutdowns or reboots the machine for
+# instance).
+other_tasks=""
+register_other_task()
+{
+    other_tasks="$other_tasks $1"
+}
+
+# Wait for tasks even if they are not immediate children of this shell
+wait_for()
+{
+    for task in "$@"
+    do
+        wait $task 2>/dev/null
+        if [ $? -ne 0 ]
+        then
+            while kill -0 $task 2>/dev/null && sleep 10
+            do
+                true
+            done
+        fi
+    done
+}
+
+
+#####
+#
+# Command line processing
+#
+#####
+
+opt_fetch=""
+opt_build=""
+opt_test=""
+opt_auto_test=""
+opt_otheros=""
+opt_auto_otheros=""
+opt_extras=""
+opt_shutdown="auto"
+opt_run=""
+usage=""
+
+parse_arguments()
+{
+    while [ $# -gt 0 ]
+    do
+        arg="$1"
+        shift
+        case "$arg" in
+            --fetch)       [ -z "$opt_fetch" ] && opt_fetch="1" ;;
+            --no-fetch)    [ -z "$opt_fetch" ] && opt_fetch="0" ;;
+            --build)       [ -z "$opt_build" ] && opt_build="1" ;;
+            --no-build)    [ -z "$opt_build" ] && opt_build="0" ;;
+            --test)        [ -z "$opt_test" ] && opt_test="1" ;;
+            --no-test)     [ -z "$opt_test" ] && opt_test="0" ;;
+            --auto-test)   [ -z "$opt_auto_test" ] && opt_auto_test="1" ;;
+            --otheros)     [ -z "$opt_otheros" ] && opt_otheros="1" ;;
+            --no-otheros)  [ -z "$opt_otheros" ] && opt_otheros="0" ;;
+            --auto-otheros) [ -z "$opt_auto_otheros" ] && opt_auto_otheros="1" ;;
+            --extras)      [ -z "$opt_extras" ] && opt_extras="1" ;;
+            --no-extras)   [ -z "$opt_extras" ] && opt_extras="0" ;;
+            --shutdown)    [ -z "$opt_shutdown" ] && opt_shutdown="1" ;;
+            --no-shutdown) [ -z "$opt_shutdown" ] && opt_shutdown="0" ;;
+            --pause)       [ -z "$opt_run" ] && opt_run="pause" ;;
+            --cancel)      [ -z "$opt_run" ] && opt_run="cancel" ;;
+            --restart)     [ -z "$opt_run" ] && opt_run="restart" ;;
+            --dry-run)     [ -z "$opt_dry_run" ] && opt_dry_run="1" ;;
+            --help|-h|-?)
+                usage=0
+                break
+                ;;
+            *)
+                error "unknown option '$arg'"
+                usage=2
+                break
+        esac
+    done
+}
+
+parse_arguments "$@"
+
+if [ "$usage" = "0" ]
+then
+    echo "Usage: $name0 [--fetch|--no-fetch] [--build|--no-build] [--test|--no-test]"
+    echo "                [--auto-test] [--extras|--no-extras] [--otheros|--no-otheros]"
+    echo "                [--auto-otheros] [--shutdown|--no-shutdown] [--dry-run]"
+    echo "or     $name0 [--pause|--cancel|--restart] [--help]"
+    echo
+
+    echo "Orchestrates all the daily WineTest runs and related tasks."
+    echo
+
+    echo "Where:"
+    echo "  --build      Fetch the latest Wine."
+    echo "  --build      Update and rebuild Wine."
+    echo "  --test       Run WineTest."
+    echo "  --extras     Run other user-defined tasks."
+    echo "  --auto-test  Don't prompt the user for the right time to start the tests."
+    echo "  --otheros    Reboots to run the tests on another OS. This is on by default."
+    echo "  --auto-otheros Don't let the user pick which other OS to run the tests on."
+    echo "  --shutdown   Perform the configured shutdown operation once done."
+    echo "  --dry-run    Show what would happen but do nothing."
+    echo "  --pause      Request the running $name0 instance to make a pause at its earliest convenience."
+    echo "  --restart    Request the running $name0 instance to resume the tests."
+    echo "  --cancel     Request the running $name0 instance to cancel the remaining tests at its earliest convenience."
+    echo "  --help, -h   Shows this help message."
+    exit 0
+elif [ -n "$usage" ]
+then
+    error "try '$name0 --help' for more information"
+    exit $usage
+fi
+
+
+######
+#
+# Define all that needs doing daily
+#
+######
+
+configured=""
+if [ -f "$dir0/$name0.config" ]
+then
+    . "$dir0/$name0.config"
+    configured=1
+fi
+if [ -f "$dir0/$name0.$hostname" ]
+then
+    . "$dir0/$name0.$hostname"
+    configured=1
+fi
+if [ -z "$configured" ]
+then
+    error "could not find the configuration file"
+    exit 1
+fi
+
+if [ -z "$test_root" ]
+then
+    error "you must provide the tests base directory"
+    exit 1
+fi
+
+case "$opt_run" in
+    pause) echo "pause" >"$test_root/run"; exit 0 ;;
+    cancel) echo "cancel" >"$test_root/run"; exit 0 ;;
+    restart) rm -f "$test_root/run"; exit 0 ;;
+esac
+
+# Perform some consistency checks
+
+parse_arguments $default_options
+if [ -z "$usage" ]
+then
+    [ -z "$opt_fetch$opt_build$opt_test$opt_extras$opt_shutdown" ] && opt_shutdown="auto"
+    if [ -z "$opt_fetch$opt_build$opt_test$opt_extras$opt_otheros" ]
+    then
+        opt_fetch="1"
+        opt_build="1"
+        opt_test="1"
+        opt_extras="1"
+        opt_otheros="1"
+    elif [ "$opt_fetch" != "1" -a "$opt_build" != "1" -a "$opt_test" != "1" -a \
+           "$opt_extras" != "1" -a "$opt_otheros" != "1" ]
+    then
+        [ -z "$opt_fetch" ] && opt_fetch="1"
+        [ -z "$opt_build" ] && opt_build="1"
+        [ -z "$opt_test" ] && opt_test="1"
+        [ -z "$opt_extras" ] && opt_extras="1"
+        [ -z "$opt_otheros" ] && opt_otheros="1"
+    fi
+else
+    error "try '$name0 --help' for more information"
+    exit $usage
+fi
+
+if [ -z "$email" ]
+then
+    error "you must provide your email address to run the Wine tests"
+    exit 1
+fi
+
+if [ -z "$tag$tagmac$tagwow32$tagwow64$otheroses" ]
+then
+    error "no Wine tests have been set to run"
+    exit 1
+fi
+
+pid=`cat "$test_root/$name0.pid" 2>/dev/null`
+if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+then
+    echo "$name0 is already running, exiting"
+    exit 0
+fi
+
+cleanup()
+{
+    rm -f "$test_root/$name0.interactive" "$test_root/$name0.otheros"
+    rm -f "$test_root/$name0.pid" "$test_root/$name0.ready"
+    rm -f "$test_root/$name0.tests"
+    # Leave $test_root/run
+}
+
+[ -d "$test_root" ] || mkdir "$test_root"
+if ! cd "$test_root"
+then
+    error "could not create the '$test_root' directory"
+    exit 1
+fi
+cleanup
+echo "$$" >"$test_root/$name0.pid"
+
+# Clean up on exit
+trap cleanup INT TERM EXIT
+
+
+#####
+#
+# Helper functions for running the tests on another OS
+#
+#####
+
+otheros_file="$test_root/$name0.otheros"
+
+# Returns either the latest Wine commit as of the last time the tests were run
+# on this other OS, or 'broken' if the OS image could not be restored.
+get_otheros_status()
+{
+    base=`basename "$1"`
+    cat "$test_root/otheroses/$base" 2>/dev/null
+}
+
+# See get_otheros_status().
+set_otheros_status()
+{
+    [ -d "$test_root/otheroses" ] || mkdir "$test_root/otheroses"
+    base=`basename "$2"`
+    echo "$1" >"$test_root/otheroses/$base"
+}
+
+# Pick an OS image to restore
+select_otheros()
+{
+    if [ -n "$otheroses" ]
+    then
+        for image in $otheroses
+        do
+            commitid=`get_otheros_status "$image"`
+            if [ "$commitid" = "broken" ]
+            then
+                echo "'$image' was recorded as broken, skipping it"
+            elif [ "$commitid" = "$latest_commitid" ]
+            then
+                echo "tests were run for '$image' already, skipping it"
+            elif [ ! -x "$image" ]
+            then
+                error "'$image' is not executable, skipping it"
+            elif [ -n "$opt_auto_otheros" ]
+            then
+                echo "$image" >"$otheros_file"
+                break
+            else
+                run "$dir0/wt-ask" "Run the tests on '$image'?" && \
+                    echo "$image" >"$otheros_file"
+                break
+            fi
+        done
+    fi
+}
+
+restore_otheros()
+{
+    image="$1"
+    do_pause
+    commitid=`get_otheros_status "$image"`
+    if [ "$commitid" = "broken" ]
+    then
+        echo "'$image' was recorded as broken, skipping it"
+    elif [ "$commitid" = "$latest_commitid" ]
+    then
+        echo "tests were run for '$image' already, skipping it"
+    elif [ ! -x "$image" ]
+    then
+        error "'$image' is not executable, skipping it"
+    elif dry_run time $nice sudo "$image" --restore && \
+         dry_run $nice sudo "$image" --grub
+    then
+        return 0
+    else
+        set_otheros_status "broken" "$image"
+    fi
+    return 1
+}
+
+# This sets up another disk image in case we failed to set up the first one
+prepare_any_otheros()
+{
+    for image in $otheroses
+    do
+        if restore_otheros "$image"
+        then
+            echo "$image" >"$otheros_file"
+            break
+        fi
+    done
+}
+
+
+#####
+#
+# Ask whether to automatically run the tests
+#
+#####
+
+do_pause
+ready_lock="$test_root/$name0.ready"
+(
+    # flock does not propagate signals to its child process
+    # so run the sleep command ourselves.
+    "$flock" 3
+     run sleep 86400
+) 3>"$ready_lock" &
+ready_pid=$!
+
+pre_interactive_lock="$test_root/$name0.interactive"
+(
+    flock 3
+    run sleep 86401
+) 3>"$pre_interactive_lock" &
+pre_interactive_pid=$!
+# Give enough time for the above tasks to take their respective locks
+sleep 1
+
+(
+    pre_interactive
+    kill $pre_interactive_pid
+
+    if [ \( "$opt_test" = "1" -a -z "$opt_auto_test" \) -o \
+         \( "$opt_otheros" = "1" -a -z "$opt_auto_otheros" -a -n "$otheroses" \) ]
+    then
+        storage="$test_root/$name0.tests"
+        (
+            # This question is automatically canceled once the tests are ready
+            # to run.
+            run "$dir0/wt-ask" "Automatically run the tests?" && \
+                echo "auto" >"$storage"
+        ) &
+        ask_auto_pid=$!
+        (
+            # Make sure the user has time to answer the 'Automatically run the
+            # tests?' question even if the build completed already.
+            sleep 30
+            
+            "$flock" "$ready_lock" true
+            echo "auto" >"$storage"
+            kill $ask_auto_pid 2>/dev/null
+        ) &
+        wait $ask_auto_pid
+        answer=`cat "$storage" 2>/dev/null`
+        if [ "$answer" != "auto" ]
+        then
+            # This question blocks the tests until answered.
+            run "$dir0/wt-ask" "Run the tests now?" || \
+                "$dir0/$name0" --cancel
+        fi
+    fi
+    
+    post_interactive
+) &
+register_interactive_task $!
+
+
+#
+# Update Wine
+#
+
+[ -d "src" ] || git clone git://source.winehq.org/git/wine.git src
+if ! cd "$test_root/src"
+then
+    error "could not check out Wine"
+    exit 1
+fi
+
+do_pause
+pre_update
+
+if [ "$opt_fetch" = "1" ]
+then
+    do_pause
+    git fetch
+fi
+
+do_pause
+if ! git rebase
+then
+    error "the rebase failed. Finish the merge manually!"
+    tag=""
+    tagmac=""
+    tagwow32=""
+    tagwow64=""
+fi
+
+wait_for $update_tasks
+
+# Check if there are still tests to run
+latest_commitid=`git rev-parse @{u}`
+[ -n "$tag" -a "`cat \"$test_root/wine/wt-bot-$tag.commit\" 2>/dev/null`" = "$latest_commitid" ] && tag=""
+[ -n "$tagmac" -a "`cat \"$test_root/wine/wt-bot-$tagmac.commit\" 2>/dev/null`" = "$latest_commitid" ] && tagmac=""
+[ -n "$tagwow32" -a "`cat \"$test_root/wow64/wt-bot-$tagwow32.commit\" 2>/dev/null`" = "$latest_commitid" ] && tagwow32=""
+[ -n "$tagwow64" -a "`cat \"$test_root/wow64/wt-bot-$tagwow64.commit\" 2>/dev/null`" = "$latest_commitid" ] && tagwow64=""
+
+
+#
+# Restore the other OS (Windows) image
+#
+
+if [ "$opt_otheros" = "1" -a -n "$otheroses" ]
+then
+    if [ -n "$opt_auto_otheros" ]
+    then
+        prepare_any_otheros &
+        register_build_task $!
+    else
+        (
+            "$flock" "$pre_interactive_lock" true
+            select_otheros &
+            ask_otheros_pid=$!
+            (
+                "$flock" "$ready_lock" true
+                kill $ask_otheros_pid 2>/dev/null
+            ) &
+            wait $ask_otheros_pid
+            
+            image=`cat "$otheros_file" 2>/dev/null`
+            if [ -n "$image" ]
+            then
+                restore_otheros "$image" || rm -f "$otheros_file"
+            fi
+        ) &
+        register_interactive_task $!
+    fi
+fi
+
+
+#####
+#
+# Build Wine
+#
+#####
+
+do_pause
+pre_build
+
+if [ "$opt_build" = "1" ]
+then
+    if [ -n "$tag$tagmac" ]
+    then
+        do_pause
+        echo "$hostname - 32 bits Build"
+        [ -d "$test_root/wine" ] || mkdir "$test_root/wine"
+        dry_run time $nice "$dir0/wt-bot" --dir "$test_root/wine" --build
+        if [ $? -ne 0 ]
+        then
+            echo "The 32 bits build failed. Skipping the 32 bits tests."
+            tag=""
+            tagmac=""
+        fi
+    fi
+
+    if [ -n "$tagwow32$tagwow64" ]
+    then
+        do_pause
+        echo
+        echo "$hostname - WoW 32 & 64 bits Build"
+        [ -d "$test_root/wow32" ] || mkdir "$test_root/wow32"
+        [ -d "$test_root/wow64" ] || mkdir "$test_root/wow64"
+        dry_run time $nice "$dir0/wt-bot" --dir "$test_root/wow64" --build --wow
+        if [ $? -ne 0 ]
+        then
+            echo "The WoW build failed. Skipping the WoW tests."
+            tagwow32=""
+            tagwow64=""
+        fi
+    fi
+fi
+
+wait_for $build_tasks
+
+
+#####
+#
+# Run the tests
+#
+#####
+
+# Always give a heads up to the user, whether we're running the tests,
+# rebooting to another OS, or running the pre_test()/post_test() tasks. 
+do_pause
+"$dir0/wt-notify" "Running the tests in 30 seconds..." &
+notify_pid=$!
+sleep 30
+
+do_pause
+kill $notify_pid 2>/dev/null
+kill $ready_pid
+wait_for $interactive_tasks
+
+do_pause
+pre_test
+
+if [ "$opt_test" = "1" ]
+then
+    if [ -n "$tagmac" ]
+    then
+        # Run the Mac driver tests before another test starts X11 / XQuartz
+        do_pause
+        echo "$hostname - WineTest (Mac driver)"
+        dry_run time "$dir0/wt-bot" --skip-old --submit \
+                --new-wineprefix --wineprefix "$test_root/wineprefix" \
+                --macdrv --dir "$test_root/wine" --winetest "$tagmac" \
+                --desc "$descmac" --exclude "$excludemac"
+    fi
+
+    if [ -n "$tag" ]
+    then
+        do_pause
+        echo "$hostname - WineTest"
+        dry_run time "$dir0/wt-bot" --skip-old --submit \
+                --new-wineprefix --wineprefix "$test_root/wineprefix" \
+                --dir "$test_root/wine" --winetest "$tag" \
+                --desc "$desc" --exclude "$exclude"
+    fi
+
+    if [ -n "$tagwow64" ]
+    then
+        do_pause
+        echo "$hostname - Wow 64 bit WineTest"
+        dry_run time "$dir0/wt-bot" --skip-old --submit \
+                --new-wineprefix --wineprefix "$test_root/wineprefix" \
+                --dir "$test_root/wow64" --winetest "$tagwow64" \
+                --desc "$descwow64" --exclude "$exclude"
+    fi
+
+    if [ -n "$tagwow32" ]
+    then
+        do_pause
+        echo "$hostname - Wow 32 bit WineTest"
+        # Note: We intentionally don't reset the WinePrefix for this test
+        dry_run time "$dir0/wt-bot" --skip-old --submit \
+                --wineprefix "$test_root/wineprefix" \
+                --dir "$test_root/wow64" --winetest "$tagwow32" \
+                --desc "$descwow32" --exclude "$exclude" \
+                --testexe "$test_root/wow32/programs/winetest/winetest.exe.so"
+
+    fi
+
+    rm -rf "$test_root/wineprefix"
+fi
+
+
+#####
+#
+# Shutdown or reboot
+#
+#####
+
+do_pause
+post_test
+
+wait_for $other_tasks
+
+image=`cat "$otheros_file" 2>/dev/null`
+if [ -n "$image" ]
+then
+    # We have no way to verify that the tests will indeed run successfully on
+    # this OS after the reboot. So what this really indicates is that we gave
+    # it a try.
+    set_otheros_status "$latest_commitid" "$image"
+    shutdown="reboot"
+    [ -n "$opt_shutdown" ] || opt_shutdown="1"
+fi
+
+do_pause
+cleanup
+[ "$opt_shutdown" != "1" -a "$opt_shutdown" != "auto" ] && shutdown=""
+[ -n "$shutdown" ] && "$dir0/wt-power" "$shutdown"
