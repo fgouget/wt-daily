@@ -1,0 +1,673 @@
+#!/bin/sh
+# Copyright (C) 2009-2015 Francois Gouget
+#
+# A script to update, build and check the Wine source code, and run the tests.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+name0=`basename "$0"`
+case "$0" in
+/*)  dir0="$0" ;;
+*/*) dir0=`pwd`/"$0" ;;
+*)   dir0=`which "$0" || echo \`pwd\`/"$0"` ;;
+esac
+dir0=`realpath "$dir0" 2>/dev/null || echo "$dir0"`
+dir0=`dirname "$dir0"`
+
+# Try to set a nicer output for the time command
+TIME="Took %E (user %U system %S)"
+export TIME
+
+platform=`uname -s`
+
+error()
+{
+    echo "$name0:error:" "$@" >&2
+}
+
+
+### Main
+
+check_opt_val()
+{
+    option="$1"
+    var="$2"
+    argc="$3"
+
+    if [ -n "$var" ]
+    then
+        error "$option can only be specified once"
+        opt_usage=2 # but continue processing options
+    fi
+    if [ $argc -eq 0 ]
+    then
+        error "missing value for $option"
+        opt_usage=2
+        return 1
+    fi
+    return 0
+}
+
+opt_dir=""
+opt_update=""
+opt_build=""
+opt_buildtype=""
+opt_crosstest=""
+opt_gcc=""
+opt_chroot=""
+opt_spelling=""
+opt_winapicheck=""
+opt_wineprefix=""
+opt_new_wineprefix=""
+opt_macdrv=""
+opt_winetest=""
+opt_testexe=""
+opt_desc=""
+opt_exclude=""
+opt_submit=""
+opt_skip_old=""
+usage=""
+while [ $# -gt 0 ]
+do
+    arg="$1"
+    shift
+    case "$arg" in
+    --dir)
+        if check_opt_val "$arg" "$opt_dir" $#
+        then
+            opt_dir="$1"
+            shift
+        fi
+        ;;
+    --update)
+        opt_update="1"
+        ;;
+    --build)
+        opt_build="1"
+        ;;
+    --64)
+        opt_buildtype="64"
+        ;;
+    --wow)
+        opt_buildtype="wow"
+        ;;
+    --pe32)
+        opt_buildtype="pe32"
+        ;;
+    --pe64)
+        opt_buildtype="pe64"
+        ;;
+    --chroot)
+        if check_opt_val "$arg" "$opt_chroot" $#
+        then
+            opt_chroot="$1"
+            shift
+        fi
+        ;;
+    --gcc)
+        if check_opt_val "$arg" "$opt_gcc" $#
+        then
+            opt_gcc="$1"
+            shift
+        fi
+        ;;
+    --crosstest)
+        opt_crosstest="1"
+        ;;
+    --spelling)
+        opt_spelling="1"
+        ;;
+    --winapicheck)
+        opt_winapicheck="1"
+        ;;
+    --wineprefix)
+        if check_opt_val "$arg" "$opt_wineprefix" $#
+        then
+            opt_wineprefix="$1"
+            shift
+        fi
+        ;;
+    --new-wineprefix)
+        opt_new_wineprefix="1"
+        ;;
+    --macdrv)
+        opt_macdrv="1"
+        ;;
+    --winetest)
+        if check_opt_val "$arg" "$opt_winetest" $#
+        then
+            opt_winetest="$1"
+            shift
+        fi
+        ;;
+    --testexe)
+        if check_opt_val "$arg" "$opt_testexe" $#
+        then
+            opt_testexe="$1"
+            shift
+        fi
+        ;;
+    --exclude)
+        if check_opt_val "$arg" "$opt_exclude" $#
+        then
+            [ -n "$1" ] && opt_exclude="-n $1"
+            shift
+        fi
+        ;;
+    --desc)
+        if check_opt_val "$arg" "$opt_desc" $#
+        then
+            opt_desc="$1"
+            shift
+        fi
+        ;;
+    --no-submit)
+        opt_submit=""
+        ;;
+    --submit)
+        opt_submit="1"
+        ;;
+    --skip-old)
+        opt_skip_old="1"
+        ;;
+    --help|-h|-\?)
+        usage="0"
+        ;;
+    *)
+        error "unknown option '$arg'"
+	usage="2"
+    esac
+done
+
+if [ -z "$usage" ]
+then
+    if [ -z "$opt_update$opt_build$opt_localchecks$opt_crosstest$opt_spelling$opt_winapicheck$opt_new_wineprefix$opt_winetest" ]
+    then
+        error "you must specify one or more tasks to perform"
+        usage="2"
+    fi
+    [ -n "$opt_dir" ] || opt_dir=`pwd`
+    if [ -f "$opt_dir/libs/wine/Makefile.in" ]
+    then
+        src_dir="."
+    elif [ -f "$opt_dir/../src/libs/wine/Makefile.in" ]
+    then
+        src_dir="../src"
+        if [ -n "$opt_spelling" -o -n "$opt_winapicheck" ]
+        then
+            error "--spelling and --winapicheck are not supported for out-of-tree builds"
+            usage="2"
+        fi
+    else
+        error "unable to find the Wine source for '$opt_dir'"
+        usage="2"
+    fi
+    if [ -z "$opt_build" ]
+    then
+        if [ -n "$opt_buildtype$opt_gcc$opt_chroot" ]
+        then
+            error "--64, --wow, --pe32, --pe64, --gcc and --chroot  can only be used with --build"
+            usage="2"
+        fi
+    fi
+    if [ -n "$opt_wineprefix" ]
+    then
+        WINEPREFIX="$opt_wineprefix"
+        export WINEPREFIX
+    else
+        opt_wineprefix="$HOME/.wine"
+    fi
+    if [ -n "$opt_winetest" ]
+    then
+        if [ -n "$opt_skip_old" -a -z "$opt_submit" ]
+        then
+            error "--skip-old cannot be used without --submit"
+            usage="2"
+        fi
+        if [ -n "$opt_testexe" -a ! -f "$opt_testexe" ]
+        then
+            error "'$opt_testexe' does not point to a valid test executable"
+            usage="2"
+        fi
+    else
+        if [ -n "$opt_desc$opt_testexe$opt_skip_old$opt_submit$opt_exclude" ]
+        then
+            error "--desc, --testexe, --skip-old, --submit and --exclude cannot be used without --winetest"
+            usage="2"
+        fi
+    fi
+fi
+
+
+if [ "$usage" = "0" ]
+then
+    echo "Usage: $name0 [--help] [--update] [--crosstest]"
+    echo "               [--build [--64|--wow|--pe] [--chroot ROOT] [--gcc GCC]]"
+    echo "               [--spelling] [--winapicheck]"
+    echo "               [--new-wineprefix] [--wineprefix DIR]"
+    echo "               [--winetest TAG [--testexe PATH] [--desc DESC] [--skip-old]"
+    echo "                 [--no-submit] [--exclude TESTS]]"
+    exit 0
+elif [ -n "$usage" ]
+then
+    error "try '$name0 --help' for more information"
+    exit $usage
+fi
+
+errors=""
+
+
+##### Check if we're allowed to make noise
+
+if [ -f "/tmp/quiet" ]
+then
+    echo "Waiting for the green light"
+    while [ -f "/tmp/quiet" ]
+    do
+        echo -n .
+        sleep 60
+    done
+    echo
+fi
+
+
+##### --update
+
+cd "$opt_dir"
+if [ -n "$opt_update" ]
+then
+    cd "$src_dir"
+    git fetch -q origin 2>&1 | egrep -v '^(remote|Receiving objects|Resolving deltas):'
+
+    if [ -d ".dotest" ]
+    then
+        error "it looks like a rebase is already in progress. Aborting!"
+        exit 1
+    fi
+
+    git diff >"git.diff"
+    if [ -s "git.diff" ]
+    then
+        # There is uncommited stuff. Just commit it so we can do a rebase
+        git commit -a -m "$name0 commit `date +%Y%m%d`"
+        if [ $? -ne 0 ]
+        then
+            error "the temporary commit failed"
+            exit 1
+        fi
+    fi
+
+    git branch $branch
+    git rebase >rebase.log 2>&1
+    if  [ $? -ne 0 ]
+    then
+        error "the rebase failed. Finish the merge manually!"
+        cat rebase.log >&2
+        git diff >git.diff
+        exit 1
+    fi
+    rm rebase.log
+    cd "$opt_dir"
+fi
+
+
+##### --build
+
+prepare_tree()
+{
+    # NFS failures or host crashes can leave 0 byte files behind.
+    find . -size 0c \( -name "*.o" -o -name "*.so" \) -print -exec rm {} \;
+    if [ ! -x "configure" ]
+    then
+        # When a tree is alternatively built by one user and then another,
+        # configure gets confused when it tries to change the permissions
+        # on an executable file that was not originally created by the
+        # current user. So delete any such file. However we don't want to
+        # do that on checked-in files (such are configure itself) so only
+        # do it for out-of-tree builds.
+        [ -n "$USER" ] || USER=`id -u`
+        find . -type f ! -user $USER -perm -u+x -print -exec rm {} \;
+    fi
+}
+
+if [ -n "$opt_build" ]
+then
+    (
+        set -e
+        if [ -n "$opt_gcc" ]
+        then
+            CC="$opt_gcc"
+            export CC
+        fi
+        chroot=""
+        if [ -n "$opt_chroot" ]
+        then
+            chroot="schroot -p -c $opt_chroot --"
+        fi
+        config_opts=""
+        case "$opt_buildtype" in
+            64|wow)
+                config_opts="$config_opts --enable-win64"
+                ;;
+            pe32)
+                unset CC
+                config_opts="$config_opts --host=i686-w64-mingw32 --with-wine-tools=../wine --without-freetype --without-x"
+                ;;
+            pe64)
+                unset CC
+                config_opts="$config_opts --host=x86_64-w64-mingw32 --with-wine-tools=../wine --without-freetype --without-x"
+                ;;
+        esac
+        if [ "$platform" = "Darwin" ]
+        then
+            # Needed since XQuartz 2.7.2
+            config_opts="$config_opts --x-includes=/opt/X11/include --x-libraries=/opt/X11/lib"
+        fi
+        prepare_tree
+        cmd="\"$src_dir/configure\" $config_opts && ( \"$dir0/wt-make\" -k || \"$dir0/wt-make\" -j1 )"
+        echo $cmd
+        time $chroot sh -c "$cmd"
+    ) >"$name0-make.log" 2>&1
+    [ $? -ne 0 ] && failed_compile="1"
+
+    if [ "$opt_buildtype" = "wow" ]
+    then
+        dir32=`basename "$opt_dir" | sed -e 's/64$/32/'`
+        cd "../$dir32"
+        (
+            set -e
+            prepare_tree
+            cmd="\"$src_dir/configure\" --with-wine64=\"$opt_dir\" && ( \"$dir0/wt-make\" -k || \"$dir0/wt-make\" -j1 )"
+            echo $cmd
+            time $chroot sh -c "$cmd"
+        ) >"$name0-make.log" 2>&1
+        [ $? -ne 0 ] && failed_compile="1"
+    fi
+    if [ -n "$failed_compile" ]
+    then
+        error "the compilation failed (see $name0-make.log):"
+        tail "$name0-make.log" >&2
+        errors="1"
+    fi
+    cd "$opt_dir"
+fi
+
+
+##### --crosstest
+
+if [ -n "$opt_crosstest" ]
+then
+    (
+        "$dir0/wt-make" -k crosstest || "$dir0/wt-make" -j1 crosstest
+    ) >"$name0-crosstest.log" 2>&1
+    [ $? -ne 0 ] && failed_compile="1"
+    if [ -n "$failed_compile" ]
+    then
+        echo
+        echo "*****"
+        echo "The compilation failed (see $name0-crosstest.log):"
+        tail "$name0-crosstest.log"
+        errors="1"
+    fi
+fi
+
+
+##### --spelling
+
+if [ -n "$opt_spelling" ] && which typos >/dev/null
+then
+    typos >spelling.txt 2>spelling.err
+    if [ -s "spelling.txt" ]
+    then
+        echo
+        echo "*****"
+        echo "Spelling errors (see spelling.txt):"
+        cat spelling.txt spelling.err
+        errors="1"
+    else
+        rm spelling.txt spelling.err
+    fi
+fi
+
+
+##### --winapicheck
+
+if [ -n "$opt_winapicheck" ]
+then
+    ./tools/winapi/winapi_check --no-progress >winapi_check.new
+    (
+        grep ': calling convention mismatch' winapi_check.new
+        grep 'not declared in the spec file' winapi_check.new
+        grep ': argument count differs:' winapi_check.new
+        grep 'but config.h is not included' winapi_check.new
+        egrep '(: file not found|is not a local include)' winapi_check.new
+        grep 'C++ comments not allowed' winapi_check.new | grep -v '//www\.'
+    ) | egrep -v '(DllGetClassObject|DllMain|MSVCRT__setjmp3|RtlRaiseException|RtlUnwind)' >winapi_check.worst
+    if [ -s "winapi_check.worst" ]
+    then
+        echo
+        echo "*****"
+        echo "Worst winapi_check errors (see winapi_check.worst):"
+        cat winapi_check.worst
+    else
+        rm winapi_check.worst
+    fi
+    cmp -s winapi_check.log winapi_check.new
+    if [ $? -ne 0 ]
+    then
+        diff -u winapi_check.log winapi_check.new | egrep "^\+[^+]" >winapi_check.diff
+        echo
+        echo "*****"
+        echo "New winapi_check errors (see winapi_check.new):"
+        cat winapi_check.diff
+    fi
+fi
+
+
+##### --new-wineprefix
+
+if [ -n "$opt_new_wineprefix" ]
+then
+    if [ -d "$opt_wineprefix/dosdevices" ]
+    then
+        rm -rf "$opt_wineprefix"
+    fi
+    if type wget >/dev/null 2>&1
+    then
+        urlget="wget -O-"
+    else
+        urlget="curl --location"
+    fi
+
+    # Check whether to update Gecko
+    version=`sed -e 's/^.*GECKO_VERSION *"\([^"]*\)"/\1/' -e t -e d "$opt_dir/dlls/mshtml/nsiface.h"`
+    arch="x86"
+    if file "$opt_dir/programs/regedit/regedit.exe.so" | grep 'ELF 64' >/dev/null
+    then
+        arch="x86_64"
+    fi
+    gecko="wine_gecko-$version-$arch.msi"
+    if [ ! -f "$opt_dir/../gecko/$gecko" ]
+    then
+        mkdir -p "$opt_dir/../gecko"
+        url="http://downloads.sourceforge.net/wine/$gecko"
+        $urlget "$url" >"$opt_dir/../gecko/$gecko"
+        if [ $? -ne 0 ]
+        then
+            error "unable to download the new Gecko: $url"
+            exit 1
+        fi
+    fi
+
+    # Check whether to update Mono
+    version=`sed -e 's/^.*define *MONO_VERSION *"\([^"]*\)"/\1/' -e t -e d "$src_dir/dlls/appwiz.cpl/addons.c"`
+    mono="wine-mono-$version.msi"
+    if [ ! -f "$opt_dir/../mono/$mono" ]
+    then
+        mkdir -p "$opt_dir/../mono"
+        url="http://downloads.sourceforge.net/wine/$mono"
+        $urlget "$url" >"$opt_dir/../mono/$mono"
+        if [ $? -ne 0 ]
+        then
+            error "unable to download the new Mono: $url"
+            exit 1
+        fi
+    fi
+fi
+
+if [ "$platform" = "Darwin" -a -z "$opt_macdrv" ]
+then
+    # Use this hack so it works even during the WINEPREFIX creation
+    if [ ! -d "$opt_wineprefix/dosdevices" ]
+    then
+        mkdir "$opt_wineprefix"
+        echo "WINE REGISTRY Version 2" >"$opt_wineprefix/user.reg"
+    fi
+    cat >>"$opt_wineprefix/user.reg" <<EOF
+[Software\\\\Wine\\\\Drivers] 0
+"Graphics"="x11,mac"
+EOF
+fi
+
+
+##### --winetest
+
+get_git_head()
+{
+    cd "$src_dir"
+    git rev-parse HEAD 2>/dev/null
+    if [ $? -ne 0 ]
+    then
+        branch=`cat ".git/HEAD" | cut -d' ' -f2`
+        git rev-parse "$branch"
+    fi
+}
+
+[ -n "$failed_compile" ] && opt_winetest=""
+if [ -n "$opt_winetest" -a -n "$opt_skip_old" ]
+then
+    latest=`get_git_head`
+    if [ -z "$latest" ]
+    then
+        error "unable to determine the current commit id"
+    else
+        last=`cat "$name0-$opt_winetest.commit" 2>/dev/null`
+        [ "$last" != "$latest" ] || opt_winetest=""
+    fi
+fi
+
+if [ -n "$opt_winetest" ]
+then
+    if [ "$platform" = "Darwin" ]
+    then
+        DYLD_FALLBACK_LIBRARY_PATH="/opt/local/lib"
+        export DYLD_FALLBACK_LIBRARY_PATH
+    else
+        DISPLAY=:0.0
+        export DISPLAY
+    fi
+    sleep 10800 &
+    sleep_pid=$!
+    logbase="$name0-$opt_winetest"
+    rm -f "$logbase.report"
+
+    "$dir0/wt-screensaver" 10800 &
+    dssaver_pid=$!
+
+    (
+        # Tell winedbg not to bring up the crash dialog as that causes
+        # everything to stop until a timeout kicks in.
+        cmd="./wine"
+        if file "./programs/regedit/regedit.exe.so" | grep 'ELF 64' >/dev/null
+        then
+            cmd="./wine64"
+        fi
+        $cmd "./programs/regedit/regedit.exe.so" - <<__EOF__
+[HKEY_CURRENT_USER\Software\Wine\WineDbg]
+"ShowCrashDialog"=dword:00000000
+__EOF__
+
+        cmd="./wine"
+        [ -n "$opt_testexe" ] || opt_testexe="./programs/winetest/winetest.exe.so"
+        if file "$opt_testexe" | egrep '(PE32[+]|ELF 64)' >/dev/null
+        then
+            cmd="./wine64"
+        fi
+        set -x
+        time $cmd $opt_testexe -c -t $opt_winetest -m "fgouget@free.fr" -i "$opt_desc" -o "$logbase.report" $opt_exclude
+        [ -n "$opt_submit" ] && time $cmd $opt_testexe -c -s "$logbase.report"
+    ) >"$logbase.log" 2>&1 &
+    winetest_pid=$!
+    progress=""
+    count=0
+    while kill -0 $sleep_pid 2>/dev/null
+    do
+        sleep 10
+        kill -0 $winetest_pid 2>/dev/null
+        if [ $? -ne 0 ]
+        then
+            wait $winetest_pid
+            rc=$?
+            if [ $rc -ne 0 ]
+            then
+                echo
+                echo "*****"
+                echo "winetest failed (rc=$rc, see $name0-$opt_winetest.log):"
+                tail "$name0-$opt_winetest.log"
+                errors="1"
+            elif [ -n "$opt_submit" ]
+            then
+                echo "$latest" >"$name0-$opt_winetest.commit"
+            fi
+            winetest_pid=""
+            break
+        fi
+        count=`expr $count + 1`
+        if [ $count -eq 30 ]  # 5 minutes
+        then
+            last=`egrep -a '^(Extracting|Running)' "$logbase.log" | tail -1`
+            if [ "$progress" = "$last" ]
+            then
+                echo
+                echo "*****"
+                echo "winetest got stuck (see $name0-$opt_winetest.log):"
+                tail "$name0-$opt_winetest.log"
+                errors="1"
+                break
+            fi
+            progress="$last"
+            count=0
+        fi
+    done
+    kill $sleep_pid
+    kill $dssaver_pid
+    if [ -n "$opt_submit" ]
+    then
+        # Don't leave Wine processes behind. They may interfere with the next
+        # winetest run or with the machine shutting down.
+        ./server/wineserver -k
+    fi
+    if [ -n "$winetest_pid" ]
+    then
+        echo
+        echo "*****"
+        echo "winetest timed out (see $name0-$opt_winetest.log):"
+        tail "$name0-$opt_winetest.log"
+        errors="1"
+    fi
+fi
+
+
+[ -n "$errors" ] && exit 1
+exit 0
