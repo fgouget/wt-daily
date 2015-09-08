@@ -1,0 +1,376 @@
+#!/bin/sh
+# Copyright (C) 2013-2015 Francois Gouget
+#
+# Creates, checks, restores or reboots to a disk image.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+name0=`basename "$0"`
+
+
+### Generic helper functions
+
+error()
+{
+    echo "$name0:error: " "$@" >&2
+}
+
+
+opt_dry_run=""
+dry_run()
+{
+    echo "$@"
+    if [ -z "$opt_dry_run" ]
+    then
+        "$@"
+    fi
+}
+
+gzip_tool()
+{
+    which pigz || echo gzip
+}
+
+xz_tool()
+{
+    which pxz || echo xz
+}
+
+
+### Main
+
+check_opt_val()
+{
+    option="$1"
+    var="$2"
+    argc="$3"
+
+    if [ -n "$var" ]
+    then
+        error "$option can only be specified once"
+        opt_usage=2 # but continue processing options
+    fi
+    if [ $argc -eq 0 ]
+    then
+        error "missing value for $option"
+        opt_usage=2
+        return 1
+    fi
+    return 0
+}
+
+opt_image=""
+opt_backup=""
+opt_description=""
+opt_action=""
+opt_quiet=""
+opt_usage=""
+while [ $# -gt 0 ]
+do
+    arg="$1"
+    shift
+    case "$arg" in
+    -n|--dry-run)
+        opt_dry_run="1"
+        ;;
+   --check)
+        if [ -n "$opt_action" ]
+        then
+            error "only one action can be specified"
+            opt_usage=2
+        else
+            opt_action="check"
+        fi
+        ;;
+   --grub)
+        if [ -n "$opt_action" ]
+        then
+            error "only one action can be specified"
+            opt_usage=2
+        else
+            opt_action="grub"
+        fi
+        ;;
+   --restore)
+        if [ -n "$opt_action" ]
+        then
+            error "only one action can be specified"
+            opt_usage=2
+        else
+            opt_action="restore"
+        fi
+        ;;
+   --backup)
+        if [ -n "$opt_action" ]
+        then
+            error "only one action can be specified"
+            opt_usage=2
+        else
+            opt_action="backup"
+        fi
+        if check_opt_val "$arg" "$opt_backup" $#
+        then
+            opt_backup="$1"
+            shift
+        fi
+        ;;
+   --description)
+        if check_opt_val "$arg" "$opt_description" $#
+        then
+            opt_description="$1"
+            shift
+        fi
+        ;;
+    --quiet)
+        opt_quiet="1"
+        ;;
+    --help|-h|-\?)
+        opt_usage=0
+        break
+        ;;
+    -*)
+        error "unknown option '$arg'"
+        opt_usage=2
+        ;;
+    *)
+        if [ -z "$opt_image" ]
+        then
+            opt_image="$arg"
+        else
+            error "an image has already been specified"
+            opt_usage=2
+        fi
+        ;;
+    esac
+done
+
+if [ -z "$opt_usage" ]
+then
+    [ -n "$GZIP" ] || GZIP="-9"
+    [ -n "$XZ_OPT" ] || XZ_OPT="-9"
+    if [ -h "$opt_image" ]
+    then
+	opt_image=`readlink "$opt_image"`
+    fi
+    case "$opt_image" in
+        *.img.gz)
+            wtimage_file=`echo "$opt_image" | sed -e 's/\.img\.gz$/.wtimage/'`
+            compress=`gzip_tool`
+            ;;
+        *.img.xz)
+            wtimage_file=`echo "$opt_image" | sed -e 's/\.img\.xz$/.wtimage/'`
+            compress=`xz_tool`
+            ;;
+        *.wtimage)
+            wtimage_file="$opt_image"
+            opt_image=`echo "$opt_image" | sed -e 's/\.wtimage$/.img/'`
+            if [ -f "$opt_image.gz" ]
+            then
+                opt_image="$opt_image.gz"
+                compress=`gzip_tool`
+            else
+                opt_image="$opt_image.xz"
+                compress=`xz_tool`
+            fi
+            ;;
+        *)
+            error "unknown image file type '$opt_image'"
+            opt_usage=2
+            ;;
+    esac
+    if [ -z "$opt_action" ]
+    then
+        error "you must specify the action to perform"
+        opt_usage=2
+    elif [ "$opt_action" = "grub" ]
+    then
+        # Nothing to do
+        true
+    elif [ "$opt_action" != "backup" -a ! -f "$opt_image" ]
+    then
+        error "'$opt_image' is not a file"
+        opt_usage=2
+    elif [ -z "$opt_image" ]
+    then
+        error "you must specify the ntfs image to work on"
+        opt_usage=2
+    fi
+    if [ -n "$opt_description" -a "$opt_action" != "backup" ]
+    then
+        error "the --description option can only be used with the --backup action"
+        opt_usage=2
+    fi
+fi
+if [ -n "$opt_usage" ]
+then
+    if [ "$opt_usage" != "0" ]
+    then
+        error "try '$name0 --help' for more information"
+        exit $opt_usage
+    fi
+    echo "Usage: $name0 [--dry-run] [--check|--restore|--backup UUID]"
+    echo "                [--description DESC] IMAGE"
+    echo
+
+    echo "Creates, checks, restores or reboots to a disk image."
+    echo
+
+    echo "Where:"
+    echo "  IMAGE         The disk image file or .wtimage file to work on."
+    echo "  --dry-run     Show what would happen but do nothing."
+    echo "  --check       Check if the partition still matches the disk image."
+    echo "  --restore     Restores the disk image to the partition."
+    echo "  --backup UUID Creates a disk image of the specified partition. The UUID is"
+    echo "                the partition's unique identifier."
+    echo "  --description DESC A description to store in the .wtimage file when backing"
+    echo "                it up for documentation purposes."
+    echo "  --help, -h    Shows this help message."
+    exit 0
+fi
+
+
+### Image file handling
+
+read_wtimage_file()
+{
+    _ignore_missing=""
+    if [ "$1" = "--ignore-missing" ]
+    then
+        _ignore_missing="1"
+        shift
+    fi
+    _wtimage_file="$1"
+    if [ -f "$_wtimage_file" ]
+    then
+        echo "$_wtimage_file" | grep / >/dev/null
+        [ $? -eq 0 ] || _wtimage_file="./$_wtimage_file"
+        . "$_wtimage_file"
+        if [ -z "$img_tool" ]
+        then
+            error "this image was created using an unknown tool '$img_tool'"
+            exit 1
+        fi
+        if [ -z "$img_uuid" ]
+        then
+            error "the wtimage file does not define the image uuid"
+            exit 1
+        fi
+        if [ -z "$img_meta_sha1" ]
+        then
+            error "the wtimage file does not define the image's metadata sha1"
+            exit 1
+        fi
+    elif [ -z "$_ignore_missing" ]
+    then
+        error "unable to find the wtimage file"
+        exit 1
+    fi
+}
+
+echo_wtimage()
+{
+    _uuid="$1"
+    _sha1="$2"
+    _description="$3"
+    _wtimage=`perl -e "use Cwd; print Cwd::realpath('$0')"`
+    echo "#!$_wtimage"
+    echo "img_tool=ntfsclone"
+    echo "img_uuid=$_uuid"
+    echo "img_meta_sha1=$_sha1"
+    echo "img_description=\"$_description\""
+}
+
+uuid_to_device()
+{
+    _uuid="$1"
+    device="/dev/disk/by-uuid/$_uuid"
+    if [ -h "$device" ]
+    then
+        device=`dirname "$device"`/`readlink "$device"`
+    fi
+    if [ ! -b "$device" ]
+    then
+        error "could not find a device matching '$_uuid'"
+        exit 1
+    fi
+}
+
+
+get_meta_sha1()
+{
+    device="$1"
+    ntfsclone --metadata --save-image --output - "$device" 2>/dev/null | sha1sum | cut -d' ' -f1
+}
+
+if [ "$opt_action" = "grub" ]
+then
+    [ -n "$img_label" ] || img_label=`sed -e "s/^menuentry ['\"]\(Windows[^'\"]*\)['\"].*\$/\\1/" -e t -e d /boot/grub/grub.cfg`
+    if [ -z "$img_label" ]
+    then
+        error "unable to find the image's grub boot entry"
+        exit 1
+    fi
+    grub-reboot "$img_label"
+
+elif [ "$opt_action" = "backup" ]
+then
+    # Backup
+    uuid_to_device "$opt_backup"
+    read_wtimage_file --ignore-missing "$wtimage_file"
+    if [ -n "$img_uuid" -a "$img_uuid" != "$opt_backup" ]
+    then
+        error "the '$opt_image' file is for partition '$image_meta_sha1', not '$opt_backup'"
+        exit 1
+    fi
+
+    meta_sha1=`get_meta_sha1 "$device"`
+    dry_run sh -c "time ntfsclone --save-image '$device' --output - | $compress -c >'$opt_image'"
+    if [ -z "$opt_dry_run" ]
+    then
+        echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description" >"$wtimage_file"
+        chmod +x "$wtimage_file"
+    else
+        echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description"
+    fi
+
+else
+    # Check / Restore
+    read_wtimage_file "$wtimage_file"
+    device="/dev/disk/by-uuid/$img_uuid"
+    if [ ! -b "$device" ]
+    then
+        error "could not find a device matching '$img_uuid'"
+        exit 1
+    fi
+    meta_sha1=`get_meta_sha1 "$device"`
+    if [ "$img_meta_sha1" != "$meta_sha1" ]
+    then
+        if [ "$opt_action" = "check" ]
+        then
+            if [ -z "$opt_quiet" ]
+            then
+                echo "Partition:   $device"
+                echo "Description: $img_description"
+                echo "Part. sha1:  $meta_sha1"
+                echo "Image sha1:  $img_meta_sha1"
+                echo "The partition needs re-imaging"
+            fi
+            exit 3
+        fi
+        dry_run sh -c "time $compress -d -c '$opt_image' | ntfsclone --restore-image --overwrite '$device' -"
+    elif [ "$opt_action" = "check" ]
+    then
+        echo "The partition matches the image"
+    fi
+fi
