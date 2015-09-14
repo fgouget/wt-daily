@@ -73,6 +73,7 @@ opt_new_wineprefix=""
 opt_macdrv=""
 opt_winetest=""
 opt_testexe=""
+opt_email=""
 opt_desc=""
 opt_exclude=""
 opt_submit=""
@@ -165,6 +166,13 @@ do
             shift
         fi
         ;;
+    --email)
+        if check_opt_val "$arg" "$opt_email" $#
+        then
+            opt_email="$1"
+            shift
+        fi
+        ;;
     --desc)
         if check_opt_val "$arg" "$opt_desc" $#
         then
@@ -230,6 +238,11 @@ then
     fi
     if [ -n "$opt_winetest" ]
     then
+        if [ -z "$opt_email" ]
+        then
+            error "you must specify an email address for --winetest"
+            usage="2"
+        fi
         if [ -n "$opt_skip_old" -a -z "$opt_submit" ]
         then
             error "--skip-old cannot be used without --submit"
@@ -241,9 +254,9 @@ then
             usage="2"
         fi
     else
-        if [ -n "$opt_desc$opt_testexe$opt_skip_old$opt_submit$opt_exclude" ]
+        if [ -n "$opt_email$opt_desc$opt_testexe$opt_skip_old$opt_submit$opt_exclude" ]
         then
-            error "--desc, --testexe, --skip-old, --submit and --exclude cannot be used without --winetest"
+            error "--email, --desc, --testexe, --skip-old, --submit and --exclude cannot be used without --winetest"
             usage="2"
         fi
     fi
@@ -256,8 +269,8 @@ then
     echo "               [--build [--64|--wow|--pe] [--chroot ROOT] [--gcc GCC]]"
     echo "               [--spelling] [--winapicheck]"
     echo "               [--new-wineprefix] [--wineprefix DIR]"
-    echo "               [--winetest TAG [--testexe PATH] [--desc DESC] [--skip-old]"
-    echo "                 [--no-submit] [--exclude TESTS]]"
+    echo "               [--winetest TAG [--testexe PATH] [--email EMAIL] [--desc DESC]"
+    echo "                 [--skip-old] [--no-submit] [--exclude TESTS]]"
     exit 0
 elif [ -n "$usage" ]
 then
@@ -605,7 +618,8 @@ __EOF__
             cmd="./wine64"
         fi
         set -x
-        time $cmd $opt_testexe -c -t $opt_winetest -m "fgouget@free.fr" -i "$opt_desc" -o "$logbase.report" $opt_exclude
+        time $cmd $opt_testexe -c -t $opt_winetest -m "$opt_email" \
+             -i "$opt_desc" -o "$logbase.report" $opt_exclude
         [ -n "$opt_submit" ] && time $cmd $opt_testexe -c -s "$logbase.report"
     ) >"$logbase.log" 2>&1 &
     winetest_pid=$!
