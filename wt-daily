@@ -408,7 +408,7 @@ restore_otheros()
     then
         return 0
     else
-        set_otheros_status "broken" "$image"
+        dry_run set_otheros_status "broken" "$image"
     fi
     return 1
 }
@@ -696,7 +696,7 @@ then
     # We have no way to verify that the tests will indeed run successfully on
     # this OS after the reboot. So what this really indicates is that we gave
     # it a try.
-    set_otheros_status "$latest_commitid" "$image"
+    dry_run set_otheros_status "$latest_commitid" "$image"
     shutdown="reboot"
     [ -n "$opt_shutdown" ] || opt_shutdown="1"
 fi
@@ -704,4 +704,4 @@ fi
 do_pause
 cleanup
 [ "$opt_shutdown" != "1" -a "$opt_shutdown" != "auto" ] && shutdown=""
-[ -n "$shutdown" ] && "$dir0/wt-power" "$shutdown"
+[ -n "$shutdown" ] && dry_run "$dir0/wt-power" "$shutdown"
