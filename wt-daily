@@ -636,7 +636,7 @@ then
         # Run the Mac driver tests before another test starts X11 / XQuartz
         do_pause
         echo "$hostname - WineTest (Mac driver)"
-        dry_run time "$dir0/wt-bot" --skip-old --submit --email "$opt_email" \
+        dry_run time "$dir0/wt-bot" --skip-old --submit --email "$email" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
                 --macdrv --dir "$test_root/wine" --winetest "$tagmac" \
                 --desc "$descmac" --exclude "$excludemac"
@@ -646,7 +646,7 @@ then
     then
         do_pause
         echo "$hostname - WineTest"
-        dry_run time "$dir0/wt-bot" --skip-old --submit --email "$opt_email" \
+        dry_run time "$dir0/wt-bot" --skip-old --submit --email "$email" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
                 --dir "$test_root/wine" --winetest "$tag" \
                 --desc "$desc" --exclude "$exclude"
@@ -656,7 +656,7 @@ then
     then
         do_pause
         echo "$hostname - Wow 64 bit WineTest"
-        dry_run time "$dir0/wt-bot" --skip-old --submit --email "$opt_email" \
+        dry_run time "$dir0/wt-bot" --skip-old --submit --email "$email" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
                 --dir "$test_root/wow64" --winetest "$tagwow64" \
                 --desc "$descwow64" --exclude "$exclude"
@@ -667,7 +667,7 @@ then
         do_pause
         echo "$hostname - Wow 32 bit WineTest"
         # Note: We intentionally don't reset the WinePrefix for this test
-        dry_run time "$dir0/wt-bot" --skip-old --submit --email "$opt_email" \
+        dry_run time "$dir0/wt-bot" --skip-old --submit --email "$email" \
                 --wineprefix "$test_root/wineprefix" \
                 --dir "$test_root/wow64" --winetest "$tagwow32" \
                 --desc "$descwow32" --exclude "$exclude" \
