@@ -347,16 +347,16 @@ otheros_file="$test_root/$name0.otheros"
 # on this other OS, or 'broken' if the OS image could not be restored.
 get_otheros_status()
 {
-    base=`basename "$1"`
-    cat "$test_root/otheroses/$base" 2>/dev/null
+    base=`basename "$1" .wtimage`
+    cat "$test_root/otheroses/$base.commit" 2>/dev/null
 }
 
 # See get_otheros_status().
 set_otheros_status()
 {
     [ -d "$test_root/otheroses" ] || mkdir "$test_root/otheroses"
-    base=`basename "$2"`
-    echo "$1" >"$test_root/otheroses/$base"
+    base=`basename "$2" .wtimage`
+    echo "$1" >"$test_root/otheroses/$base.commit"
 }
 
 # Pick an OS image to restore
