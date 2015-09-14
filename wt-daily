@@ -212,7 +212,7 @@ then
     echo
 
     echo "Where:"
-    echo "  --build      Fetch the latest Wine."
+    echo "  --fetch      Fetch the latest Wine."
     echo "  --build      Update and rebuild Wine."
     echo "  --test       Run WineTest."
     echo "  --extras     Run other user-defined tasks."
