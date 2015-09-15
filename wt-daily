@@ -35,6 +35,10 @@ dir0=`dirname "$dir0"`
 platform=`uname -s`
 hostname=`hostname | cut -d. -f1`
 
+# Try to set a nicer output for the time command
+TIME="Took %E (user %U system %S)"
+export TIME
+
 flock="flock"
 which flock >/dev/null || flock="$dir0/pflock"
 
