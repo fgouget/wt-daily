@@ -384,9 +384,9 @@ select_otheros()
             then
                 echo "$image" >"$otheros_file"
                 break
-            else
-                run "$dir0/wt-ask" "Run the tests on '$image'?" && \
-                    echo "$image" >"$otheros_file"
+            elif run "$dir0/wt-ask" "Run the tests on '$image'?"
+            then
+                echo "$image" >"$otheros_file"
                 break
             fi
         done
