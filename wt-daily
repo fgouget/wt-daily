@@ -180,11 +180,7 @@ then
     exit 1
 fi
 
-if [ -z "$test_root" ]
-then
-    error "you must provide the tests base directory"
-    exit 1
-fi
+[ -n "$test_root" ] || test_root="$dir0/winetest"
 
 # Allow pre-pausing but not pre-canceling
 run=`cat "$test_root/run" 2>/dev/null`
