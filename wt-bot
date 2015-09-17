@@ -36,6 +36,16 @@ error()
     echo "$name0:error:" "$@" >&2
 }
 
+run_ext()
+{
+    type "$1" >/dev/null 2>&1 && "$@"
+}
+
+
+### Load the optional configuration file
+
+[ -f "$dir0/$name0.config" ] && . "$dir0/$name0.config"
+
 
 ### Main
 
@@ -78,6 +88,7 @@ opt_desc=""
 opt_exclude=""
 opt_submit=""
 opt_skip_old=""
+opt_extras=""
 usage=""
 while [ $# -gt 0 ]
 do
@@ -193,14 +204,18 @@ do
         usage="0"
         ;;
     *)
-        error "unknown option '$arg'"
-	usage="2"
+        if ! type is_extra_option >/dev/null 2>&1 || ! is_extra_option "$arg"
+        then
+           error "unknown option '$arg'"
+	   usage="2"
+           break
+        fi
     esac
 done
 
 if [ -z "$usage" ]
 then
-    if [ -z "$opt_update$opt_build$opt_localchecks$opt_crosstest$opt_spelling$opt_winapicheck$opt_new_wineprefix$opt_winetest" ]
+    if [ -z "$opt_update$opt_build$opt_localchecks$opt_crosstest$opt_spelling$opt_winapicheck$opt_new_wineprefix$opt_winetest$opt_extras" ]
     then
         error "you must specify one or more tasks to perform"
         usage="2"
@@ -315,6 +330,7 @@ then
     echo "                    The result is stored in 'spelling.txt'."
     echo "  --winapicheck     Runs winapi_check on the Wine source and store the report"
     echo "                    in 'winapi_check.xxx'."
+    run_ext print_extra_usage
     echo "  --help, -h        Shows this help message."
     exit 0
 elif [ -n "$usage" ]
@@ -343,6 +359,9 @@ fi
 ##### --update
 
 cd "$opt_dir"
+
+run_ext pre_update
+
 if [ -n "$opt_update" ]
 then
     cd "$src_dir"
@@ -381,6 +400,8 @@ fi
 
 
 ##### --build
+
+run_ext pre_build
 
 prepare_tree()
 {
@@ -479,6 +500,8 @@ then
         errors="1"
     fi
 fi
+
+run_ext post_build
 
 
 ##### --spelling
@@ -635,6 +658,8 @@ then
         DISPLAY=:0.0
         export DISPLAY
     fi
+    run_ext pre_winetest
+
     sleep 10800 &
     sleep_pid=$!
     logbase="$name0-$opt_winetest"
@@ -725,6 +750,8 @@ __EOF__
         tail "$name0-$opt_winetest.log"
         errors="1"
     fi
+
+    run_ext post_winetest
 fi
 
 

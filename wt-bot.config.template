@@ -1,0 +1,51 @@
+#####
+#
+# Template for the optional wt-bot configuration file
+#
+#####
+
+# Use this to extend wt-bot with extra command line options.
+# The option under consideration is passed as the first argument and
+# is_extra_option() should return 0 if it is valid, 1 otherwise.
+# Set opt_extras if appropriate to avoid warnings regarding the lack of
+# tasks to perform.
+is_extra_option()
+{
+    return 1
+}
+
+# This allows documenting the extra options.
+print_extra_usage()
+{
+    return
+}
+
+# Called before updating the Wine source.
+pre_update()
+{
+    return
+}
+
+# Called before building Wine.
+pre_build()
+{
+    return
+}
+
+# Called after Wine has been built.
+post_build()
+{
+    return
+}
+
+# Called just before running the Wine tests.
+pre_winetest()
+{
+    return
+}
+
+# Called after the Wine tests have been run.
+post_winetest()
+{
+    return
+}
