@@ -76,6 +76,20 @@ default_options=""
 #
 #####
 
+# Use this to extend wt-daily with extra command line options.
+# The option under consideration is passed as the first argument and
+# is_extra_option() should return 0 if it is valid, 1 otherwise.
+is_extra_option()
+{
+    return 1
+}
+
+# This allows documenting the extra options.
+print_extra_usage()
+{
+    return
+}
+
 # Use this to get the user's input before wt-daily asks its own questions.
 # This function is invoked in a subshell and will block the tests until it
 # returns. "$flock" "$ready_lock" will return as soon as the tests are ready

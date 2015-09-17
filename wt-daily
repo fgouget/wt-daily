@@ -230,9 +230,12 @@ parse_arguments()
                 break
                 ;;
             *)
-                error "unknown option '$arg'"
-                usage=2
-                break
+                if ! is_extra_option "$arg"
+                then
+                    error "unknown option '$arg'"
+                    usage=2
+                    break
+                fi
         esac
     done
 }
@@ -263,6 +266,7 @@ then
     echo "  --pause      Request the running $name0 instance to make a pause at its earliest convenience."
     echo "  --restart    Request the running $name0 instance to resume the tests."
     echo "  --cancel     Request the running $name0 instance to cancel the remaining tests at its earliest convenience."
+    print_extra_usage
     echo "  --help, -h   Shows this help message."
     exit 0
 elif [ -n "$usage" ]
