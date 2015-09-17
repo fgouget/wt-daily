@@ -333,6 +333,7 @@ fi
 
 cleanup()
 {
+    kill $interactive_tasks $ready_pid $notify_pid 2>/dev/null
     rm -f "$test_root/$name0.interactive" "$test_root/$name0.otheros"
     rm -f "$test_root/$name0.pid" "$test_root/$name0.ready"
     rm -f "$test_root/$name0.tests"
