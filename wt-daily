@@ -61,6 +61,11 @@ dry_run()
     fi
 }
 
+run_ext()
+{
+    type "$1" >/dev/null 2>&1 && "$@"
+}
+
 kill_children()
 {
     # $$ is not updated in subshells and $BASHPID is not portable :-(
@@ -70,8 +75,8 @@ kill_children()
     exit 0
 }
 
-# Use run() to ensure the specified command will be terminated even if the shell
-# is killed.
+# Use run() to ensure the specified command will be terminated even if the
+# shell is killed.
 run()
 {
     trap kill_children INT TERM
@@ -230,7 +235,7 @@ parse_arguments()
                 break
                 ;;
             *)
-                if ! is_extra_option "$arg"
+                if ! type is_extra_option >/dev/null 2>&1 || ! is_extra_option "$arg"
                 then
                     error "unknown option '$arg'"
                     usage=2
@@ -266,7 +271,7 @@ then
     echo "  --pause      Request the running $name0 instance to make a pause at its earliest convenience."
     echo "  --restart    Request the running $name0 instance to resume the tests."
     echo "  --cancel     Request the running $name0 instance to cancel the remaining tests at its earliest convenience."
-    print_extra_usage
+    run_ext print_extra_usage
     echo "  --help, -h   Shows this help message."
     exit 0
 elif [ -n "$usage" ]
@@ -475,7 +480,7 @@ pre_interactive_pid=$!
 sleep 1
 
 (
-    pre_interactive
+    run_ext pre_interactive
     kill $pre_interactive_pid
 
     if [ \( "$opt_test" = "1" -a -z "$opt_auto_test" \) -o \
@@ -508,7 +513,7 @@ sleep 1
         fi
     fi
     
-    post_interactive
+    run_ext post_interactive
 ) &
 register_interactive_task $!
 
@@ -525,7 +530,7 @@ then
 fi
 
 do_pause
-pre_update
+run_ext pre_update
 
 if [ "$opt_fetch" = "1" ]
 then
@@ -592,7 +597,7 @@ fi
 #####
 
 do_pause
-pre_build
+run_ext pre_build
 
 if [ "$opt_build" = "1" ]
 then
@@ -649,7 +654,7 @@ kill $ready_pid
 wait_for $interactive_tasks
 
 do_pause
-pre_test
+run_ext pre_test
 
 if [ "$opt_test" = "1" ]
 then
@@ -708,7 +713,7 @@ fi
 #####
 
 do_pause
-post_test
+run_ext post_test
 
 wait_for $other_tasks
 
