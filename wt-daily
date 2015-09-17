@@ -152,6 +152,36 @@ wait_for()
 }
 
 
+######
+#
+# Read the configuration file
+#
+######
+
+configured=""
+if [ -f "$dir0/$name0.config" ]
+then
+    . "$dir0/$name0.config"
+    configured=1
+fi
+if [ -f "$dir0/$name0.$hostname" ]
+then
+    . "$dir0/$name0.$hostname"
+    configured=1
+fi
+if [ -z "$configured" ]
+then
+    error "could not find the configuration file"
+    exit 1
+fi
+
+if [ -z "$test_root" ]
+then
+    error "you must provide the tests base directory"
+    exit 1
+fi
+
+
 #####
 #
 # Command line processing
@@ -204,6 +234,7 @@ parse_arguments()
 }
 
 parse_arguments "$@"
+parse_arguments $default_options
 
 if [ "$usage" = "0" ]
 then
@@ -236,45 +267,8 @@ then
     exit $usage
 fi
 
-
-######
-#
-# Define all that needs doing daily
-#
-######
-
-configured=""
-if [ -f "$dir0/$name0.config" ]
-then
-    . "$dir0/$name0.config"
-    configured=1
-fi
-if [ -f "$dir0/$name0.$hostname" ]
-then
-    . "$dir0/$name0.$hostname"
-    configured=1
-fi
-if [ -z "$configured" ]
-then
-    error "could not find the configuration file"
-    exit 1
-fi
-
-if [ -z "$test_root" ]
-then
-    error "you must provide the tests base directory"
-    exit 1
-fi
-
-case "$opt_run" in
-    pause) echo "pause" >"$test_root/run"; exit 0 ;;
-    cancel) echo "cancel" >"$test_root/run"; exit 0 ;;
-    restart) rm -f "$test_root/run"; exit 0 ;;
-esac
-
 # Perform some consistency checks
 
-parse_arguments $default_options
 if [ -z "$usage" ]
 then
     [ -z "$opt_fetch$opt_build$opt_test$opt_shutdown" ] && opt_shutdown="auto"
@@ -292,22 +286,31 @@ then
         [ -z "$opt_test" ] && opt_test="1"
         [ -z "$opt_otheros" ] && opt_otheros="1"
     fi
-else
+
+    if [ -z "$email" ]
+    then
+        error "you must provide your email address to run the Wine tests"
+        usage=2
+    fi
+    if [ -z "$tag$tagmac$tagwow32$tagwow64$otheroses" ]
+    then
+        error "no Wine tests have been set to run"
+        usage=2
+    fi
+fi
+
+if [ -n "$usage" ]
+then
     error "try '$name0 --help' for more information"
     exit $usage
 fi
 
-if [ -z "$email" ]
-then
-    error "you must provide your email address to run the Wine tests"
-    exit 1
-fi
+case "$opt_run" in
+    pause) echo "pause" >"$test_root/run"; exit 0 ;;
+    cancel) echo "cancel" >"$test_root/run"; exit 0 ;;
+    restart) rm -f "$test_root/run"; exit 0 ;;
+esac
 
-if [ -z "$tag$tagmac$tagwow32$tagwow64$otheroses" ]
-then
-    error "no Wine tests have been set to run"
-    exit 1
-fi
 
 pid=`cat "$test_root/$name0.pid" 2>/dev/null`
 if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
