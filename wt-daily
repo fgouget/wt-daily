@@ -271,30 +271,38 @@ fi
 
 if [ -z "$usage" ]
 then
-    [ -z "$opt_fetch$opt_build$opt_test$opt_shutdown" ] && opt_shutdown="auto"
-    if [ -z "$opt_fetch$opt_build$opt_test$opt_otheros" ]
+    if [ -z "$opt_run" ]
     then
-        opt_fetch="1"
-        opt_build="1"
-        opt_test="1"
-        opt_otheros="1"
-    elif [ "$opt_fetch" != "1" -a "$opt_build" != "1" -a \
-           "$opt_test" != "1" -a "$opt_otheros" != "1" ]
-    then
-        [ -z "$opt_fetch" ] && opt_fetch="1"
-        [ -z "$opt_build" ] && opt_build="1"
-        [ -z "$opt_test" ] && opt_test="1"
-        [ -z "$opt_otheros" ] && opt_otheros="1"
-    fi
+        [ -z "$opt_fetch$opt_build$opt_test$opt_shutdown" ] && opt_shutdown="auto"
+        if [ -z "$opt_fetch$opt_build$opt_test$opt_otheros" ]
+        then
+            opt_fetch="1"
+            opt_build="1"
+            opt_test="1"
+            opt_otheros="1"
+        elif [ "$opt_fetch" != "1" -a "$opt_build" != "1" -a \
+               "$opt_test" != "1" -a "$opt_otheros" != "1" ]
+        then
+            [ -z "$opt_fetch" ] && opt_fetch="1"
+            [ -z "$opt_build" ] && opt_build="1"
+            [ -z "$opt_test" ] && opt_test="1"
+            [ -z "$opt_otheros" ] && opt_otheros="1"
+        fi
 
-    if [ -z "$email" ]
+        if [ -z "$email" ]
+        then
+            error "you must provide your email address to run the Wine tests"
+            usage=2
+        fi
+        if [ -z "$tag$tagmac$tagwow32$tagwow64$otheroses" ]
+        then
+            error "no Wine tests have been set to run"
+            usage=2
+        fi
+
+    elif [ -n "$opt_fetch$opt_build$opt_test" -o "$opt_shutdown" != "auto" ]
     then
-        error "you must provide your email address to run the Wine tests"
-        usage=2
-    fi
-    if [ -z "$tag$tagmac$tagwow32$tagwow64$otheroses" ]
-    then
-        error "no Wine tests have been set to run"
+        error "--pause, --restart and --cancel are incompatible with the other options"
         usage=2
     fi
 fi
