@@ -160,7 +160,6 @@ opt_test=""
 opt_auto_test=""
 opt_otheros=""
 opt_auto_otheros=""
-opt_extras=""
 opt_shutdown="auto"
 opt_run=""
 usage=""
@@ -182,8 +181,6 @@ parse_arguments()
             --otheros)     [ -z "$opt_otheros" ] && opt_otheros="1" ;;
             --no-otheros)  [ -z "$opt_otheros" ] && opt_otheros="0" ;;
             --auto-otheros) [ -z "$opt_auto_otheros" ] && opt_auto_otheros="1" ;;
-            --extras)      [ -z "$opt_extras" ] && opt_extras="1" ;;
-            --no-extras)   [ -z "$opt_extras" ] && opt_extras="0" ;;
             --shutdown)    [ -z "$opt_shutdown" ] && opt_shutdown="1" ;;
             --no-shutdown) [ -z "$opt_shutdown" ] && opt_shutdown="0" ;;
             --pause)       [ -z "$opt_run" ] && opt_run="pause" ;;
@@ -207,8 +204,8 @@ parse_arguments "$@"
 if [ "$usage" = "0" ]
 then
     echo "Usage: $name0 [--fetch|--no-fetch] [--build|--no-build] [--test|--no-test]"
-    echo "                [--auto-test] [--extras|--no-extras] [--otheros|--no-otheros]"
-    echo "                [--auto-otheros] [--shutdown|--no-shutdown] [--dry-run]"
+    echo "                [--auto-test] [--otheros|--no-otheros] [--auto-otheros]"
+    echo "                [--shutdown|--no-shutdown] [--dry-run]"
     echo "or     $name0 [--pause|--cancel|--restart] [--help]"
     echo
 
@@ -219,7 +216,6 @@ then
     echo "  --fetch      Fetch the latest Wine."
     echo "  --build      Update and rebuild Wine."
     echo "  --test       Run WineTest."
-    echo "  --extras     Run other user-defined tasks."
     echo "  --auto-test  Don't prompt the user for the right time to start the tests."
     echo "  --otheros    Reboots to run the tests on another OS. This is on by default."
     echo "  --auto-otheros Don't let the user pick which other OS to run the tests on."
@@ -277,21 +273,19 @@ esac
 parse_arguments $default_options
 if [ -z "$usage" ]
 then
-    [ -z "$opt_fetch$opt_build$opt_test$opt_extras$opt_shutdown" ] && opt_shutdown="auto"
-    if [ -z "$opt_fetch$opt_build$opt_test$opt_extras$opt_otheros" ]
+    [ -z "$opt_fetch$opt_build$opt_test$opt_shutdown" ] && opt_shutdown="auto"
+    if [ -z "$opt_fetch$opt_build$opt_test$opt_otheros" ]
     then
         opt_fetch="1"
         opt_build="1"
         opt_test="1"
-        opt_extras="1"
         opt_otheros="1"
-    elif [ "$opt_fetch" != "1" -a "$opt_build" != "1" -a "$opt_test" != "1" -a \
-           "$opt_extras" != "1" -a "$opt_otheros" != "1" ]
+    elif [ "$opt_fetch" != "1" -a "$opt_build" != "1" -a \
+           "$opt_test" != "1" -a "$opt_otheros" != "1" ]
     then
         [ -z "$opt_fetch" ] && opt_fetch="1"
         [ -z "$opt_build" ] && opt_build="1"
         [ -z "$opt_test" ] && opt_test="1"
-        [ -z "$opt_extras" ] && opt_extras="1"
         [ -z "$opt_otheros" ] && opt_otheros="1"
     fi
 else
