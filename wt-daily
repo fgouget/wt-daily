@@ -82,6 +82,7 @@ run()
 
 do_pause()
 {
+    inpause=""
     while true
     do
         run=`cat "$test_root/run" 2>/dev/null`
@@ -94,8 +95,11 @@ do_pause()
         then
             break
         fi
+        [ -z "$inpause" ] && echo "$name0: Pausing the tests..."
+        inpause="1"
         sleep 10
     done
+    [ -n "$inpause" ] && echo "$name0: Resuming the tests..."
 }
 
 # Use register_update_task() to identify background tasks that must be
