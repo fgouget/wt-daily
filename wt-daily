@@ -71,7 +71,7 @@ kill_children()
     # $$ is not updated in subshells and $BASHPID is not portable :-(
     shell_pid=`sh -c 'echo $PPID'`
     [ -n "$shell_pid" -a "$shell_pid" != "1" ] && \
-        kill `pgrep -P $shell_pid 2>/dev/null`
+        kill `pgrep -P $shell_pid 2>/dev/null` 2>/dev/null
     exit 0
 }
 
