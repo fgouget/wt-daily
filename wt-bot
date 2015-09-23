@@ -652,8 +652,18 @@ if [ -n "$opt_winetest" ]
 then
     if [ "$platform" = "Darwin" ]
     then
-        DYLD_FALLBACK_LIBRARY_PATH="/opt/local/lib"
-        export DYLD_FALLBACK_LIBRARY_PATH
+        if [ -n "$DYLD_FALLBACK_LIBRARY_PATH" ]
+        then
+            # Leave it as is
+        elif [ -f "/usr/X11/lib/libfreetype.6.dylib" ]
+        then
+            DYLD_FALLBACK_LIBRARY_PATH="/usr/X11/lib"
+            export DYLD_FALLBACK_LIBRARY_PATH
+        elif [ -f "/opt/local/lib/libfreetype.6.dylib" ]
+        then
+            DYLD_FALLBACK_LIBRARY_PATH="/opt/local/lib"
+            export DYLD_FALLBACK_LIBRARY_PATH
+        fi
     elif [ -z "$DISPLAY" ]
     then
         DISPLAY=":0.0"
