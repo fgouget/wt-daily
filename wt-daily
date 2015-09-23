@@ -278,6 +278,16 @@ fi
 
 # Perform some consistency checks
 
+check_tag()
+{
+    echo "$1" | perl -ne 'exit(/^[.0-9a-zA-Z-]{0,20}$/ ? 0 : 1)'
+    if [ $? -ne 0 ]
+    then
+        error "the '$1' tag is invalid"
+        usage=2
+    fi
+}
+
 if [ -z "$usage" ]
 then
     if [ -z "$opt_run" ]
@@ -308,6 +318,10 @@ then
             error "no Wine tests have been set to run"
             usage=2
         fi
+        check_tag "$tag"
+        check_tag "$tagmac"
+        check_tag "$tagwow32"
+        check_tag "$tagwow64"
 
     elif [ -n "$opt_fetch$opt_build$opt_test" -o "$opt_shutdown" != "auto" ]
     then
