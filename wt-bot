@@ -654,8 +654,9 @@ then
     then
         DYLD_FALLBACK_LIBRARY_PATH="/opt/local/lib"
         export DYLD_FALLBACK_LIBRARY_PATH
-    else
-        DISPLAY=:0.0
+    elif [ -z "$DISPLAY" ]
+    then
+        DISPLAY=":0.0"
         export DISPLAY
     fi
     run_ext pre_winetest
