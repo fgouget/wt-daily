@@ -280,12 +280,22 @@ fi
 
 check_tag()
 {
-    echo "$1" | perl -ne 'exit(/^[.0-9a-zA-Z-]{0,20}$/ ? 0 : 1)'
+    _tag="$1"
+    shift
+    echo "$_tag" | perl -ne 'exit(/^[.0-9a-zA-Z-]{0,20}$/ ? 0 : 1)'
     if [ $? -ne 0 ]
     then
-        error "the '$1' tag is invalid"
+        error "the '$_tag' tag is invalid"
         usage=2
     fi
+    for t in "$@"
+    do
+        if [ -n "$tag" -a "$_tag" = "$t" ]
+        then
+            error "the '$t' tag has been duplicated"
+            usage=2
+        fi
+    done
 }
 
 if [ -z "$usage" ]
@@ -319,9 +329,9 @@ then
             usage=2
         fi
         check_tag "$tag"
-        check_tag "$tagmac"
-        check_tag "$tagwow32"
-        check_tag "$tagwow64"
+        check_tag "$tagmac" "$tag"
+        check_tag "$tagwow32" "$tagmac" "$tag"
+        check_tag "$tagwow64" "$tagwow32" "$tagmac" "$tag"
 
     elif [ -n "$opt_fetch$opt_build$opt_test" -o "$opt_shutdown" != "auto" ]
     then
