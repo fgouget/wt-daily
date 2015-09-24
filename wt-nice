@@ -19,7 +19,7 @@
 name0=`basename "$0"`
 
 ionice=""
-if type ionice >/dev/null
+if type ionice >/dev/null 2>&1
 then
     ionice="ionice -c 3"
 fi
