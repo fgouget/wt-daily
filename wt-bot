@@ -654,7 +654,7 @@ then
     then
         if [ -n "$DYLD_FALLBACK_LIBRARY_PATH" ]
         then
-            # Leave it as is
+            true # Leave it as is
         elif [ -f "/usr/X11/lib/libfreetype.6.dylib" ]
         then
             DYLD_FALLBACK_LIBRARY_PATH="/usr/X11/lib"
