@@ -290,7 +290,7 @@ check_tag()
     fi
     for t in "$@"
     do
-        if [ -n "$tag" -a "$_tag" = "$t" ]
+        if [ -n "$_tag" -a "$_tag" = "$t" ]
         then
             error "the '$t' tag has been duplicated"
             usage=2
