@@ -40,7 +40,7 @@ TIME="Took %E (user %U system %S)"
 export TIME
 
 flock="flock"
-which flock >/dev/null || flock="$dir0/pflock"
+which flock >/dev/null || flock="$dir0/wt-flock"
 
 nice="$dir0/wt-nice"
 [ -x "$nice" ] || nice="nice -n 20"
