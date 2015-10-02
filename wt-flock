@@ -1,0 +1,186 @@
+#!/usr/bin/perl
+# Copyright (C) 2014 Francois Gouget
+#
+# Provide flock() functionality to scripts.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+use warnings;
+use strict;
+
+use Fcntl qw(:flock);
+
+my $name0=$0;
+$name0 =~ s+^.*/++;
+
+
+sub error(@)
+{
+    print STDERR "$name0:error: ", @_;
+}
+
+
+#
+# Command line parsing
+#
+
+my $opt_timeout;
+my $opt_filename;
+my $usage;
+
+sub check_opt_val($$)
+{
+    my ($option, $val)=@_;
+
+    if (defined $val)
+    {
+        error("$option can only be specified once\n");
+        $usage = 2; # but continue processing this option
+    }
+    if (!@ARGV)
+    {
+        error("missing value for $option\n");
+        $usage = 2;
+        return undef;
+    }
+    return shift @ARGV;
+}
+
+while (@ARGV)
+{
+    my $arg = shift @ARGV;
+    if ($arg eq "-?" or $arg eq "-h" or $arg eq "--help")
+    {
+        $usage = 0;
+        last;
+    }
+    elsif ($arg eq "-w")
+    {
+        $opt_timeout = check_opt_val($arg, $opt_timeout);
+    }
+    elsif ($arg =~ /^-/)
+    {
+        error("unknown '$arg' option\n");
+        $usage = 2;
+        last;
+    }
+    else
+    {
+        $opt_filename = $arg;
+        last;
+    }
+}
+if (!defined $usage)
+{
+    $opt_timeout = 3600 if (!defined $opt_timeout);
+    # Catch integer overflows, etc.
+    my $bad = eval "$opt_timeout < 0";
+    $bad = 1 if ($@);
+    if ($bad)
+    {
+        error("invalid timeout '$opt_timeout'\n");
+        $usage = 2;
+    }
+    if (!defined $opt_filename)
+    {
+        error("you must specify the file to lock\n");
+        $usage = 2;
+    }
+    if (($opt_filename !~ /^[0-9]+$/) != (@ARGV != 0))
+    {
+        error("you must either specify a command to run or lock a file descriptor\n");
+        $usage = 2;
+    }
+}
+if (defined $usage)
+{
+    if ($usage)
+    {
+        error("try '$name0 --help' for more information\n");
+        exit $usage;
+    }
+    print "Usage: $name0 [--help] [-w TIMEOUT] FILENAME [COMMAND ...]\n";
+
+    print "\n";
+    print "Locks the specified file while running the command. If the file is already locked then waits until it is unlocked.\n";
+
+    print "\n";
+    print "Where:\n";
+    print "  TIMEOUT     Give up waiting for the lock after the specified number of\n";
+    print "              seconds.\n";
+    print "  FILENAME    The file to lock. This is either a filename or a file descriptor.\n";
+    print "  COMMAND     The command to run. If omitted then $name0 exits as soon as the\n";
+    print "              lock is available.\n";
+    print "  --help, -h  Shows this help message.\n";
+    exit 0;
+}
+
+my $fh;
+if ($opt_filename =~ /^[0-9]+$/)
+{
+    if (!open($fh, "<&=", $opt_filename))
+    {
+        error("unable to open file descriptor $opt_filename: $!\n");
+        exit(1);
+    }
+}
+elsif (!open($fh, "<", $opt_filename))
+{
+    error("unable to open '$opt_filename' for reading: $!\n");
+    exit(1);
+}
+
+my $locked;
+my $rc = 0;
+eval
+{
+    local $SIG{ALRM} = sub { die "timeout" };
+    alarm($opt_timeout) if ($opt_timeout);
+
+    # Lock the file
+    if (!flock($fh, LOCK_EX))
+    {
+        error("unable to lock '$opt_filename': $!\n");
+        exit(1);
+    }
+    $locked = 1;
+
+    # Run the command
+    my $pid;
+    if (@ARGV)
+    {
+        $pid = fork();
+        if (!defined $pid)
+        {
+            error("unable to fork: $!\n");
+            exit(1);
+        }
+        if ($pid == 0)
+        {
+            exec(@ARGV) or
+                error("unable to run '@ARGV': $!\n");
+            exit(1);
+        }
+    }
+
+    if ($pid)
+    {
+        wait();
+        $rc = $? & 0xff ? 1 : $? >> 8;
+    }
+    alarm(0);
+};
+
+flock($fh, LOCK_UN) if ($locked);
+exit($rc);
