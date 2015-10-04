@@ -384,7 +384,6 @@ then
         fi
     fi
 
-    git branch $branch
     git rebase >rebase.log 2>&1
     if  [ $? -ne 0 ]
     then
