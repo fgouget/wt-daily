@@ -105,9 +105,11 @@ if (defined $usage)
     exit 0;
 }
 
-# Mac OS X is not supported
-my $platform = `uname -s`;
-exit 0 if ($platform eq "Darwin");
+if (system("type xdg-screensaver >/dev/null 2>&1"))
+{
+    error("xdg-screensaver is missing. Ignoring the '$opt_action' command.\n");
+    exit 1;
+}
 
 my $rc;
 if ($opt_action =~ /^(?:activate|lock|status)$/)
