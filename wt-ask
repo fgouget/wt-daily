@@ -81,7 +81,7 @@ fi
 # Ask the question
 #
 
-if type osascript >/dev/null
+if type osascript >/dev/null 2>&1
 then
     # This is Mac OS X but osascript provides no usable way of asking such a
     # question ('display dialog' is too buggy).
