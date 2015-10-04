@@ -481,24 +481,24 @@ prepare_any_otheros()
 
 do_pause
 ready_lock="$test_root/$name0.ready"
-(
+{
     # flock does not propagate signals to its child process
     # so run the sleep command ourselves.
     "$flock" 3
      run sleep 86400
-) 3>"$ready_lock" &
+} 3>"$ready_lock" &
 ready_pid=$!
 
 pre_interactive_lock="$test_root/$name0.interactive"
-(
+{
     "$flock" 3
     run sleep 86401
-) 3>"$pre_interactive_lock" &
+} 3>"$pre_interactive_lock" &
 pre_interactive_pid=$!
 # Give enough time for the above tasks to take their respective locks
 sleep 1
 
-(
+{
     run_ext pre_interactive
     kill $pre_interactive_pid
 
@@ -506,14 +506,14 @@ sleep 1
          \( "$opt_otheros" = "1" -a -z "$opt_auto_otheros" -a -n "$otheroses" \) ]
     then
         storage="$test_root/$name0.tests"
-        (
+        {
             # This question is automatically canceled once the tests are ready
             # to run.
             run "$dir0/wt-ask" "Automatically run the tests?" && \
                 echo "auto" >"$storage"
-        ) &
+        } &
         ask_auto_pid=$!
-        (
+        {
             # Make sure the user has time to answer the 'Automatically run the
             # tests?' question even if the build completed already.
             sleep 30
@@ -521,7 +521,7 @@ sleep 1
             "$flock" "$ready_lock" true
             echo "auto" >"$storage"
             kill $ask_auto_pid 2>/dev/null
-        ) &
+        } &
         wait $ask_auto_pid
         answer=`cat "$storage" 2>/dev/null`
         if [ "$answer" != "auto" ]
@@ -533,7 +533,7 @@ sleep 1
     fi
     
     run_ext post_interactive
-) &
+} &
 register_interactive_task $!
 
 
@@ -589,14 +589,14 @@ then
         prepare_any_otheros &
         register_build_task $!
     else
-        (
+        {
             "$flock" "$pre_interactive_lock" true
             select_otheros &
             ask_otheros_pid=$!
-            (
+            {
                 "$flock" "$ready_lock" true
                 kill $ask_otheros_pid 2>/dev/null
-            ) &
+            } &
             wait $ask_otheros_pid
             
             image=`cat "$otheros_file" 2>/dev/null`
@@ -604,7 +604,7 @@ then
             then
                 restore_otheros "$image" || rm -f "$otheros_file"
             fi
-        ) &
+        } &
         register_interactive_task $!
     fi
 fi
