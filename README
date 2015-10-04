@@ -1,0 +1,185 @@
+1. Introduction
+---------------
+
+This repository contains a set of tools to allow running the Wine test
+suite with minimal effort and submit the results to
+http://test.winehq.org
+
+References:
+ * Wine      http://www.winehq.org
+ * WineTest  http://wiki.winehq.org/ConformanceTests
+
+
+2. QuickStart
+-------------
+
+The main script is wt-daily. Its purpose is to "orchestrate all the
+daily WineTest runs and related tasks."
+
+Here's the quickstart guide:
+
+git clone https://github.com/fgouget/wt-daily.git
+cd wt-daily
+cp wt-daily.config.template wt-daily.config
+vi wt-daily.config
+  In this file set the following lines:
+  email="your email address here"
+  tag="a-tag"
+  desc="A description of your system for Wine developers"
+  shutdown="suspend"
+
+Then just type ./wt-daily. This will update and rebuild Wine, run the
+tests and finally suspend your machine.
+
+It's that simple!
+
+Note that you can keep using your machine up until the tests start. If
+you don't want the tests to start automatically click 'No' before the
+build is done.
+
+If you'd rather not suspend your machine once all is done, you can set
+shutdown to "poweroff" or "reboot" instead, or even leave it empty to
+leave the computer on.
+
+If you have a 64 bit system then you can also set the {tag,desc}wow32
+and {tag,desc}wow64 variables to run the tests in a mixed 32/64 bit
+WinePrefix. If you have a Mac, set the {tag,desc}mac variables instead
+of (or in addition to) the regular ones to run the tests using the
+Mac driver instead of (or in addition to) X11. If you can, running the
+X11 tests on a Mac is useful but XQuartz can be temperamental.
+
+Now you can totally stop reading here. But there's a ton more that the 
+script can do. Read on if you want to discover more.
+
+
+3. Creative uses
+----------------
+
+The thing to remember is that the 'configuration file' is actually a
+shell script that can define multiple functions that are called at
+various points by wt-daily. This means you can extend wt-daily to do
+your bidding to your hearts content. Here are some ideas.
+
+You can have the script start an application that will prevent the
+tests from running until you close it. For instance you can use that to
+turn a MythTV client box into a WineTest box. Whenever you watch TV
+Wine will get updated and rebuilt in the background and once you
+exit MythFrontend the script will run the tests before power off the
+computer.
+(see pre_interactive() in wt-daily.config.template)
+
+The script can also take an image of a suitably configured Windows
+partition, restore it, reboot to Windows which will then automatically
+run the Wine tests and finally either shut the computer down or reboot
+back to Linux depending on the configuration.
+(see the section on that subject below)
+
+This functionality is used on the cw1-hd6800 and xw2-gtx560 CodeWeavers 
+boxes to run the tests on Linux, then Windows 8.1 and then Windows 10. 
+All automatically. wt-daily actually runs every hour and skips the
+tests (and rebooting) if nothing changed since the last run.
+
+You can also extend wt-daily to add non Wine tasks. For instance you
+could use it to run a script synchronizing your desktop and laptop
+Documents folders and Git repositories, ensuring that with one simple
+daily routine you both keep the two machines in sync and contribute to
+Wine.
+(see pre_update() or pre_build() in wt-daily.config.template)
+
+You can even add command line options to turn these extra tasks on/off.
+(see is_extra_option() and  print_extra_usage() in wt-daily.config.template)
+
+
+4. The other tools
+------------------
+
+The repository also contains a number or scripts that you will likely
+not have to use yourself but which you may find them useful to further
+automate things. Note that they all have a --help option.
+
+wt-image       Creates, checks, restores or reboots to a disk image.
+               See the section below.
+
+wt-bot         Updates, builds and checks the Wine source code, and runs
+               the tests.
+wt-make        Seeks to automatically fully use CPU and I/O parallelism
+               when running make. Used by wt-bot obviously.
+
+wt-ask         Asks a simple Yes/No question to the user.
+wt-notify      Displays a notification to the user.
+wt-power       Powers off, reboots, suspends or hibernates the computer.
+wt-screensaver Controls the screensaver. In particular wt-bot uses it to
+               prevent the screensaver from triggering during the tests.
+wt-nice        Runs the specified command with the lowest possible CPU
+               and I/O priority. wt-daily uses it to ensure your
+               computer remains usable while it rebuilds Wine in the
+               background.
+wt-flock       A portable replacement for flock.
+
+
+5. Running the tests on Windows
+-------------------------------
+
+wt-daily can also help you automate running the tests on your Windows
+partition. It does so by restoring your Windows partition from a disk
+image stored on your Linux system.
+
+    *********************************************************
+    * This means the content of your Windows partition will *
+    * be wiped out every time you run the tests on Windows. *
+    *********************************************************
+
+So obviously you must first think hard about whether that's appropriate
+for your situation and it will require some preparation.
+
+If you're still interested then here are the steps:
+
+1. First configure your Windows partition so it can run the tests. This
+   may mean disabling the anti-virus (some of them interfere with
+   WineTest), ensuring it will have network connectivity, etc. The
+   'Windows configuration' section of the WineTestBot VM configuration
+   page may be useful for that.
+
+   http://wiki.winehq.org/WineTestBotVMs
+
+2. You may also want to do a big cleanup to minimize the amount of data
+   that will have to be written to disk every time you run the tests.
+
+3. Use wt-daily.bat.template as a basis to create a wt-daily.bat file.
+   Configure the tagXXX settings as usual.
+
+4. Then configure Windows for automatic login and follow the steps at
+   the top of the file so the batch file is run automatically on login.
+   Should you need to use your Windows partition know that you'll have
+   30 seconds to interrupt the batch file after the login.
+
+5. Ideally in all the steps above you did not run the Wine tests so that
+   the Windows environment is still pristine.
+
+6. Now that the Windows side is ready, reboot to Linux and create the
+   reference image.
+   su -
+   mkdir /winimages
+   cd /winimages
+   wt-image --backup PARTITION_UUID \
+            --desc "A description for your reference" \
+            windows.img.gz
+
+7. The above command will have created a windows.wtimage script. Make
+   sure you can run it as root from your user account (e.g. johndoe):
+   cat /etc/sudoers.d/wt-image
+   johndoe ALL = NOPASSWD: /winimages/windows.wtimage --restore, /winimages/windows.wtimage --check, /winimages/windows.wtimage --grub
+
+8. Now in wt-daily.config set the otheroses setting:
+   otheroses="/winimages/windows.wtimage"
+
+That's it. Normally wt-daily should now ask whether you want to
+"Run the tests on 'windows'". If you say yes it will restore the Windows
+partition from the backup and reboot to Windows (after first running
+the tests on Linux).
+
+If you don't answer the question it will ignore the otheroses setting.
+To automatically restore the Windows partition, add the following line
+to your wt-daily.config file:
+
+default_options="--auto-otheros"
