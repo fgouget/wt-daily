@@ -144,4 +144,4 @@ if ($opt_action eq "suspend")
     }
 }
 
-exit $rc;
+exit $rc ? 1 : 0;
