@@ -491,7 +491,7 @@ ready_pid=$!
 
 pre_interactive_lock="$test_root/$name0.interactive"
 (
-    flock 3
+    "$flock" 3
     run sleep 86401
 ) 3>"$pre_interactive_lock" &
 pre_interactive_pid=$!
