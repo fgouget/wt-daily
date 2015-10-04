@@ -128,7 +128,8 @@ if (defined $usage)
 my $fh;
 if ($opt_filename =~ /^[0-9]+$/)
 {
-    if (!open($fh, "<&=", $opt_filename))
+    # Try both forms for compatibility with Perl 5.8.
+    if (!open($fh, "<&=", $opt_filename) && !open($fh, ">&=", $opt_filename))
     {
         error("unable to open file descriptor $opt_filename: $!\n");
         exit(1);
