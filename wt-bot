@@ -486,9 +486,9 @@ fi
 
 if [ -n "$opt_crosstest" ]
 then
-    (
+    {
         "$dir0/wt-make" -k crosstest || "$dir0/wt-make" -j1 crosstest
-    ) >"$name0-crosstest.log" 2>&1
+    } >"$name0-crosstest.log" 2>&1
     [ $? -ne 0 ] && failed_compile="1"
     if [ -n "$failed_compile" ]
     then
@@ -526,14 +526,14 @@ fi
 if [ -n "$opt_winapicheck" ]
 then
     ./tools/winapi/winapi_check --no-progress >winapi_check.new
-    (
+    {
         grep ': calling convention mismatch' winapi_check.new
         grep 'not declared in the spec file' winapi_check.new
         grep ': argument count differs:' winapi_check.new
         grep 'but config.h is not included' winapi_check.new
         egrep '(: file not found|is not a local include)' winapi_check.new
         grep 'C++ comments not allowed' winapi_check.new | grep -v '//www\.'
-    ) | egrep -v '(DllGetClassObject|DllMain|MSVCRT__setjmp3|RtlRaiseException|RtlUnwind)' >winapi_check.worst
+    } | egrep -v '(DllGetClassObject|DllMain|MSVCRT__setjmp3|RtlRaiseException|RtlUnwind)' >winapi_check.worst
     if [ -s "winapi_check.worst" ]
     then
         echo
@@ -678,7 +678,7 @@ then
     "$dir0/wt-screensaver" 10800 &
     dssaver_pid=$!
 
-    (
+    {
         # Tell winedbg not to bring up the crash dialog as that causes
         # everything to stop until a timeout kicks in.
         cmd="./wine"
@@ -701,7 +701,7 @@ __EOF__
         time $cmd $opt_testexe -c -t $opt_winetest -m "$opt_email" \
              -i "$opt_desc" -o "$logbase.report" $opt_exclude
         [ -n "$opt_submit" ] && time $cmd $opt_testexe -c -s "$logbase.report"
-    ) >"$logbase.log" 2>&1 &
+    } >"$logbase.log" 2>&1 &
     winetest_pid=$!
     progress=""
     count=0
