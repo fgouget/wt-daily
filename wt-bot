@@ -384,7 +384,8 @@ then
         fi
     fi
 
-    git rebase >rebase.log 2>&1
+    upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
+    git rebase $upstream >rebase.log 2>&1
     if  [ $? -ne 0 ]
     then
         error "the rebase failed. Finish the merge manually!"

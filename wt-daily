@@ -558,7 +558,8 @@ then
 fi
 
 do_pause
-if ! git rebase
+upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
+if ! git rebase $upstream
 then
     error "the rebase failed. Finish the merge manually!"
     tag=""
