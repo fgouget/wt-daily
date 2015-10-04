@@ -74,14 +74,23 @@ kill_children()
     exit 0
 }
 
+# On FreeBSD and Mac OS X the shell ignores signals not only while running
+# commands, but also while in 'wait'.
+interruptible_wait()
+{
+    while kill -0 "$1" 2>/dev/null
+    do
+        sleep 1
+    done
+}
+
 # Use run() to ensure the specified command will be terminated even if the
 # shell is killed.
 run()
 {
     trap kill_children INT TERM
-    # The shell ignores signals while running a command, but not while in wait.
     "$@" &
-    wait $!
+    interruptible_wait $!
 }
 
 do_pause()
