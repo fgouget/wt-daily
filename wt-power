@@ -109,10 +109,10 @@ then
     # Only trigger the shutdown after this script and thus 'Terminal'
     # are done otherwise we'll be stuck waiting for confirmation from
     # the user.
-    (
+    {
         sleep 5
         dry_run osascript -e "tell application \"finder\" to $opt_action"
-    ) &
+    } &
 
 else
     # Older systems use a combination of ConsoleKit and UPower while newer
