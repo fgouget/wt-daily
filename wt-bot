@@ -421,18 +421,18 @@ prepare_tree()
 
 if [ -n "$opt_build" ]
 then
+    if [ -n "$opt_gcc" ]
+    then
+        CC="$opt_gcc"
+        export CC
+    fi
+    chroot=""
+    if [ -n "$opt_chroot" ]
+    then
+        chroot="schroot -p -c $opt_chroot --"
+    fi
     (
         set -e
-        if [ -n "$opt_gcc" ]
-        then
-            CC="$opt_gcc"
-            export CC
-        fi
-        chroot=""
-        if [ -n "$opt_chroot" ]
-        then
-            chroot="schroot -p -c $opt_chroot --"
-        fi
         config_opts=""
         case "$opt_buildtype" in
             64|wow)
