@@ -72,6 +72,7 @@ opt_dir=""
 opt_update=""
 opt_build=""
 opt_buildtype=""
+opt_buildretry=""
 opt_crosstest=""
 opt_gcc=""
 opt_chroot=""
@@ -118,6 +119,9 @@ do
         ;;
     --pe64)
         opt_buildtype="pe64"
+        ;;
+    --build-retry)
+        opt_buildretry="1"
         ;;
     --chroot)
         if check_opt_val "$arg" "$opt_chroot" $#
@@ -237,9 +241,9 @@ then
     fi
     if [ -z "$opt_build" ]
     then
-        if [ -n "$opt_buildtype$opt_gcc$opt_chroot" ]
+        if [ -n "$opt_buildtype$opt_buildretry$opt_gcc$opt_chroot" ]
         then
-            error "--64, --wow, --pe32, --pe64, --gcc and --chroot  can only be used with --build"
+            error "--64, --wow, --pe32, --pe64, --build-retry, --gcc and --chroot  can only be used with --build"
             usage="2"
         fi
     fi
@@ -419,8 +423,9 @@ prepare_tree()
     fi
 }
 
-if [ -n "$opt_build" ]
-then
+do_build()
+{
+    _config="$1"
     if [ -n "$opt_gcc" ]
     then
         CC="$opt_gcc"
@@ -431,8 +436,43 @@ then
     then
         chroot="schroot -p -c $opt_chroot --"
     fi
+    echo "Running: $_config"
+    time $chroot sh -c "$_config"
+    _rc=$?
+    [ $_rc -ne 0 ] && return $_rc
+
+    prepare_tree
+    if [ -z "$opt_buildretry" ]
+    then
+        _build="( \"$dir0/wt-make\" -k || \"$dir0/wt-make\" -j1 )"
+    else
+        _build="\"$dir0/wt-make\""
+    fi
+    echo
+    echo "Running: $_build"
+    time $chroot sh -c "$_build"
+    _rc=$?
+    [ $_rc -eq 0 -o -z "$opt_buildretry" ] && return $_rc
+
+    echo
+    echo "The build failed. Trying again from a clean tree..."
+    echo "src_dir='$src_dir' pwd=`pwd`"
+    prepare_tree
+    _clean="\"$dir0/wt-make\" distclean"
+    _src=`cd "$src_dir" && pwd`
+    [ "$_src" = `pwd` ] && _clean="$_clean; git clean -Xdf"
+    echo "Running: $_clean"
+    time $chroot sh -c "$_clean"
+
+    _build="( \"$dir0/wt-make\" || \"$dir0/wt-make\" -j1 )"
+    echo "Running: $_config && $_build"
+    time $chroot sh -c "$_config && $_build"
+}
+
+
+if [ -n "$opt_build" ]
+then
     (
-        set -e
         config_opts=""
         case "$opt_buildtype" in
             64|wow)
@@ -452,23 +492,16 @@ then
             # Needed since XQuartz 2.7.2
             config_opts="$config_opts --x-includes=/opt/X11/include --x-libraries=/opt/X11/lib"
         fi
-        prepare_tree
-        cmd="\"$src_dir/configure\" $config_opts && ( \"$dir0/wt-make\" -k || \"$dir0/wt-make\" -j1 )"
-        echo $cmd
-        time $chroot sh -c "$cmd"
+        do_build "\"$src_dir/configure\" $config_opts"
     ) >"$name0-make.log" 2>&1
     [ $? -ne 0 ] && failed_compile="1"
 
     if [ "$opt_buildtype" = "wow" ]
     then
         (
-            set -e
             dir32=`basename "$opt_dir" | sed -e 's/64$/32/'`
-            cd "../$dir32"
-            prepare_tree
-            cmd="\"$src_dir/configure\" --with-wine64=\"$opt_dir\" && ( \"$dir0/wt-make\" -k || \"$dir0/wt-make\" -j1 )"
-            echo $cmd
-            time $chroot sh -c "$cmd"
+            cd "../$dir32" &&
+                do_build "\"$src_dir/configure\" --with-wine64=\"$opt_dir\""
         ) >"$name0-make.log" 2>&1
         [ $? -ne 0 ] && failed_compile="1"
     fi
