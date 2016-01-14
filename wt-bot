@@ -461,10 +461,10 @@ then
 
     if [ "$opt_buildtype" = "wow" ]
     then
-        dir32=`basename "$opt_dir" | sed -e 's/64$/32/'`
-        cd "../$dir32"
         (
             set -e
+            dir32=`basename "$opt_dir" | sed -e 's/64$/32/'`
+            cd "../$dir32"
             prepare_tree
             cmd="\"$src_dir/configure\" --with-wine64=\"$opt_dir\" && ( \"$dir0/wt-make\" -k || \"$dir0/wt-make\" -j1 )"
             echo $cmd
