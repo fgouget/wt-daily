@@ -284,8 +284,8 @@ fi
 if [ "$usage" = "0" ]
 then
     echo "Usage: $name0 [--dir DIR] [--update] [--crosstest]"
-    echo "              [--build [--64|--wow|--pe32|--pe64] [--chroot ROOT] [--gcc GCC]]"
-    echo "              [--wineprefix DIR] [--new-wineprefix]"
+    echo "              [--build [--64|--wow|--pe32|--pe64] [--chroot ROOT] [--gcc GCC]"
+    echo "              [--build-retry]] [--wineprefix DIR] [--new-wineprefix]"
     echo "              [--winetest TAG [--email EMAIL] [--desc DESC] [--exclude TESTS]"
     echo "              [--macdrv] [--testexe PATH] [--skip-old] [--no-submit]]"
     echo "              [--spelling] [--winapicheck] [--help]"
@@ -309,6 +309,7 @@ then
     echo "    --pe64          Cross-build Wine to produce 64 bit Windows executables."
     echo "    --chroot ROOT   schroot to ROOT for the build."
     echo "    --gcc GCC       Set \$CC to the specified compiler."
+    echo "    --build-retry   Retry the build from a clean tree if it fails."
     echo "  --crosstest       Make the crosstest target. This only builds the Windows test"
     echo "                    executables."
     echo "  --wineprefix DIR  Specifies the WINEPREFIX directory to operate on. By default"
