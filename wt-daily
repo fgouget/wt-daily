@@ -636,7 +636,7 @@ then
         do_pause
         echo "$hostname - 32 bits Build"
         [ -d "$test_root/wine" ] || mkdir "$test_root/wine"
-        dry_run time $nice "$dir0/wt-bot" --dir "$test_root/wine" --build
+        dry_run time $nice "$dir0/wt-bot" --dir "$test_root/wine" --build --build-retry
         if [ $? -ne 0 ]
         then
             echo "The 32 bits build failed. Skipping the 32 bits tests."
@@ -652,7 +652,7 @@ then
         echo "$hostname - WoW 32 & 64 bits Build"
         [ -d "$test_root/wow32" ] || mkdir "$test_root/wow32"
         [ -d "$test_root/wow64" ] || mkdir "$test_root/wow64"
-        dry_run time $nice "$dir0/wt-bot" --dir "$test_root/wow64" --build --wow
+        dry_run time $nice "$dir0/wt-bot" --dir "$test_root/wow64" --build --build-retry --wow
         if [ $? -ne 0 ]
         then
             echo "The WoW build failed. Skipping the WoW tests."
