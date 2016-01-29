@@ -202,7 +202,7 @@ run=`cat "$test_root/run" 2>/dev/null`
 #
 #####
 
-opt_fetch=""
+opt_update=""
 opt_build=""
 opt_test=""
 opt_auto_test=""
@@ -219,8 +219,8 @@ parse_arguments()
         arg="$1"
         shift
         case "$arg" in
-            --fetch)       [ -z "$opt_fetch" ] && opt_fetch="1" ;;
-            --no-fetch)    [ -z "$opt_fetch" ] && opt_fetch="0" ;;
+            --update)      [ -z "$opt_update" ] && opt_update="1" ;;
+            --no-update)   [ -z "$opt_update" ] && opt_update="0" ;;
             --build)       [ -z "$opt_build" ] && opt_build="1" ;;
             --no-build)    [ -z "$opt_build" ] && opt_build="0" ;;
             --test)        [ -z "$opt_test" ] && opt_test="1" ;;
@@ -255,7 +255,7 @@ parse_arguments $default_options
 
 if [ "$usage" = "0" ]
 then
-    echo "Usage: $name0 [--fetch|--no-fetch] [--build|--no-build] [--test|--no-test]"
+    echo "Usage: $name0 [--update|--no-update] [--build|--no-build] [--test|--no-test]"
     echo "                [--auto-test] [--otheros|--no-otheros] [--auto-otheros]"
     echo "                [--shutdown|--no-shutdown] [--dry-run]"
     echo "or     $name0 [--pause|--cancel|--restart] [--help]"
@@ -265,8 +265,8 @@ then
     echo
 
     echo "Where:"
-    echo "  --fetch      Fetch the latest Wine."
-    echo "  --build      Update and rebuild Wine."
+    echo "  --update     Fetch and rebase to the latest Wine."
+    echo "  --build      Rebuild Wine."
     echo "  --test       Run WineTest."
     echo "  --auto-test  Don't prompt the user for the right time to start the tests."
     echo "  --otheros    Reboots to run the tests on another OS. This is on by default."
@@ -311,17 +311,17 @@ if [ -z "$usage" ]
 then
     if [ -z "$opt_run" ]
     then
-        [ -z "$opt_fetch$opt_build$opt_test$opt_shutdown" ] && opt_shutdown="auto"
-        if [ -z "$opt_fetch$opt_build$opt_test$opt_otheros" ]
+        [ -z "$opt_update$opt_build$opt_test$opt_shutdown" ] && opt_shutdown="auto"
+        if [ -z "$opt_update$opt_build$opt_test$opt_otheros" ]
         then
-            opt_fetch="1"
+            opt_update="1"
             opt_build="1"
             opt_test="1"
             opt_otheros="1"
-        elif [ "$opt_fetch" != "1" -a "$opt_build" != "1" -a \
+        elif [ "$opt_update" != "1" -a "$opt_build" != "1" -a \
                "$opt_test" != "1" -a "$opt_otheros" != "1" ]
         then
-            [ -z "$opt_fetch" ] && opt_fetch="1"
+            [ -z "$opt_update" ] && opt_update="1"
             [ -z "$opt_build" ] && opt_build="1"
             [ -z "$opt_test" ] && opt_test="1"
             [ -z "$opt_otheros" ] && opt_otheros="1"
@@ -342,7 +342,7 @@ then
         check_tag "$tagwow32" "$tagmac" "$tag"
         check_tag "$tagwow64" "$tagwow32" "$tagmac" "$tag"
 
-    elif [ -n "$opt_fetch$opt_build$opt_test" -o "$opt_shutdown" != "auto" ]
+    elif [ -n "$opt_update$opt_build$opt_test" -o "$opt_shutdown" != "auto" ]
     then
         error "--pause, --restart and --cancel are incompatible with the other options"
         usage=2
@@ -561,21 +561,21 @@ fi
 do_pause
 run_ext pre_update
 
-if [ "$opt_fetch" = "1" ]
+upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
+if [ "$opt_update" = "1" ]
 then
     do_pause
     git fetch
-fi
 
-do_pause
-upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
-if ! git rebase $upstream
-then
-    error "the rebase failed. Finish the merge manually!"
-    tag=""
-    tagmac=""
-    tagwow32=""
-    tagwow64=""
+    do_pause
+    if ! git rebase $upstream
+    then
+        error "the rebase failed. Finish the merge manually!"
+        tag=""
+        tagmac=""
+        tagwow32=""
+        tagwow64=""
+    fi
 fi
 
 wait_for $update_tasks
