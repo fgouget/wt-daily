@@ -615,11 +615,12 @@ then
     if [ ! -f "$opt_dir/../gecko/$gecko" ]
     then
         mkdir -p "$opt_dir/../gecko"
-        url="http://downloads.sourceforge.net/wine/$gecko"
+        url="http://dl.winehq.org/wine/wine-gecko/$version/$gecko"
         $urlget "$url" >"$opt_dir/../gecko/$gecko"
         if [ $? -ne 0 ]
         then
             error "unable to download the new Gecko: $url"
+            rm -f "$opt_dir/../gecko/$gecko"
             exit 1
         fi
     fi
@@ -630,11 +631,12 @@ then
     if [ ! -f "$opt_dir/../mono/$mono" ]
     then
         mkdir -p "$opt_dir/../mono"
-        url="http://downloads.sourceforge.net/wine/$mono"
+        url="http://dl.winehq.org/wine/wine-mono/$version/$mono"
         $urlget "$url" >"$opt_dir/../mono/$mono"
         if [ $? -ne 0 ]
         then
             error "unable to download the new Mono: $url"
+            rm -f "$opt_dir/../mono/$mono"
             exit 1
         fi
     fi
