@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2009-2015 Francois Gouget
+# Copyright (C) 2009-2016 Francois Gouget
 #
 # A script to update, build and check the Wine source code, and run the tests.
 #
@@ -612,7 +612,7 @@ then
         arch="x86_64"
     fi
     gecko="wine_gecko-$version-$arch.msi"
-    if [ ! -f "$opt_dir/../gecko/$gecko" ]
+    if [ ! -s "$opt_dir/../gecko/$gecko" ]
     then
         mkdir -p "$opt_dir/../gecko"
         url="http://dl.winehq.org/wine/wine-gecko/$version/$gecko"
@@ -628,7 +628,7 @@ then
     # Check whether to update Mono
     version=`sed -e 's/^.*define *MONO_VERSION *"\([^"]*\)"/\1/' -e t -e d "$src_dir/dlls/appwiz.cpl/addons.c"`
     mono="wine-mono-$version.msi"
-    if [ ! -f "$opt_dir/../mono/$mono" ]
+    if [ ! -s "$opt_dir/../mono/$mono" ]
     then
         mkdir -p "$opt_dir/../mono"
         url="http://dl.winehq.org/wine/wine-mono/$version/$mono"
