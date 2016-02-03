@@ -31,9 +31,10 @@ self_update()
     (
         set -e
         cd "$dir0"
-        git fetch
         upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
-        [ `git rev-parse HEAD` != `git rev-parse $upstream` ] || exit 1
+        oldcommit=`git rev-parse $upstream`
+        git fetch
+        [ `git rev-parse $upstream` != "$oldcommit" ] || exit 1
         if ! git rebase
         then
             git rebase --abort
