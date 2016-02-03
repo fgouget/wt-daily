@@ -30,6 +30,7 @@ self_update()
     # current directory even if one of them fails.
     (
         set -e
+        cd "$dir0"
         git fetch
         upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
         [ `git rev-parse HEAD` != `git rev-parse $upstream` ] || exit 1
