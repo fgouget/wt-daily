@@ -24,6 +24,23 @@ esac
 dir0=`realpath "$dir0" 2>/dev/null || echo "$dir0"`
 dir0=`dirname "$dir0"`
 
+self_update()
+{
+    # Run the commands in a subshell so as to not impact the
+    # current directory even if one of them fails.
+    (
+        set -e
+        git fetch
+        upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
+        [ `git rev-parse HEAD` != `git rev-parse $upstream` ] || exit 1
+        if ! git rebase
+        then
+            git rebase --abort
+            exit 1
+        fi
+    )
+}
+
 
 #####
 #
@@ -202,6 +219,20 @@ run=`cat "$test_root/run" 2>/dev/null`
 #
 #####
 
+if [ "$1" = "--self-update" ]
+then
+    self_update="1"
+    shift
+elif  [ "$1" = "--no-self-update" ]
+then
+    self_update=""
+    shift
+fi
+if [ -n "$self_update" ]
+then
+    self_update && exec "$dir0/$name0" "$@"
+fi
+
 opt_update=""
 opt_build=""
 opt_test=""
@@ -255,8 +286,9 @@ parse_arguments $default_options
 
 if [ "$usage" = "0" ]
 then
-    echo "Usage: $name0 [--update|--no-update] [--build|--no-build] [--test|--no-test]"
-    echo "                [--auto-test] [--otheros|--no-otheros] [--auto-otheros]"
+    echo "Usage: $name0 [--self-update|--no-self-update] [--update|--no-update]"
+    echo "                [--build|--no-build] [--test|--no-test] [--auto-test]"
+    echo "                [--otheros|--no-otheros] [--auto-otheros]"
     echo "                [--shutdown|--no-shutdown] [--dry-run]"
     echo "or     $name0 [--pause|--cancel|--restart] [--help]"
     echo
@@ -265,6 +297,8 @@ then
     echo
 
     echo "Where:"
+    echo "  --self-update Update the $name0 checkout. When used this must be the first"
+    echo "               option."
     echo "  --update     Fetch and rebase to the latest Wine."
     echo "  --build      Rebuild Wine."
     echo "  --test       Run WineTest."

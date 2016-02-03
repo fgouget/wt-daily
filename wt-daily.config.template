@@ -60,6 +60,11 @@ excludewow64=""
 # tests.
 otheroses=""
 
+# If non-empty, wt-daily will update itself and the related scripts before
+# running. This ensures the tests will keep running even when evolutions are
+# needed to deal with Wine changes.
+self_update="1"
+
 # If non-empty this value will be passed to wt-power once all the tests have
 # been run. This makes it possible to automatically shut down the machine
 # after running the tests for instance.
