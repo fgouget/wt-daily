@@ -36,7 +36,7 @@ self_update()
         # Without $upstream git systematically does a rebase, even if the
         # branch is already up to date.
         upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
-        if ! git rebase $upstream
+        if ! git rebase -q $upstream
         then
             git rebase --abort
             exit 1
