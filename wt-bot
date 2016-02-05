@@ -495,21 +495,22 @@ then
         fi
         do_build "\"$src_dir/configure\" $config_opts"
     ) >"$name0-make.log" 2>&1
-    [ $? -ne 0 ] && failed_compile="1"
+    [ $? -ne 0 ] && failed_compile="`pwd`/$name0-make.log"
 
     if [ "$opt_buildtype" = "wow" ]
     then
+        dir32=`basename "$opt_dir" | sed -e 's/64$/32/'`
+        dir32=`cd "../$dir32" && pwd`
         (
-            dir32=`basename "$opt_dir" | sed -e 's/64$/32/'`
-            cd "../$dir32" &&
+            cd "$dir32" &&
                 do_build "\"$src_dir/configure\" --with-wine64=\"$opt_dir\""
-        ) >"$name0-make.log" 2>&1
-        [ $? -ne 0 ] && failed_compile="1"
+        ) >"$dir32/$name0-make.log" 2>&1
+        [ $? -ne 0 ] && failed_compile="$dir32/$name0-make.log"
     fi
     if [ -n "$failed_compile" ]
     then
-        error "the compilation failed (see $name0-make.log):"
-        tail "$name0-make.log" >&2
+        error "the compilation failed (see $failed_compile):"
+        tail "$failed_compile" >&2
         errors="1"
     fi
     cd "$opt_dir"
