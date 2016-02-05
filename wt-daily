@@ -31,15 +31,17 @@ self_update()
     (
         set -e
         cd "$dir0"
-        upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
-        oldcommit=`git rev-parse $upstream`
         git fetch
-        [ `git rev-parse $upstream` != "$oldcommit" ] || exit 1
-        if ! git rebase
+        oldcommit=`git rev-parse HEAD`
+        # Without $upstream git systematically does a rebase, even if the
+        # branch is already up to date.
+        upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
+        if ! git rebase $upstream
         then
             git rebase --abort
             exit 1
         fi
+        [ `git rev-parse HEAD` != "$oldcommit" ]
     )
 }
 
