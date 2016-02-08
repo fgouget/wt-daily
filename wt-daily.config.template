@@ -61,9 +61,17 @@ excludewow64=""
 otheroses=""
 
 # If non-empty, wt-daily will update itself and the related scripts before
-# running. This ensures the tests will keep running even when evolutions are
-# needed to deal with Wine changes.
-self_update="1"
+# running.
+#
+# **** SECURITY NOTICE ***
+#
+# _It is quite recommended_ to set self_update to true so the tests will keep
+# running unattented even when wt-daily updates are needed to deal with Wine
+# changes.
+# However that supposes you trust whoever administrates or has commit access
+# to the upstream Git repository. Thus, despite this being suboptimal, the
+# default is to not self-update.
+self_update=""
 
 # If non-empty this value will be passed to wt-power once all the tests have
 # been run. This makes it possible to automatically shut down the machine
