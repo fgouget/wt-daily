@@ -592,6 +592,53 @@ fi
 
 ##### --new-wineprefix
 
+verify_addon()
+{
+    key="$1"
+    filename="$2"
+    [ -f "$filename" ] || return 1
+
+    sha=`sha1sum "$filename" | cut -d' ' -f1`
+    if sed -e "s/^.*define  *${key}_SHA *\"\\([^\"]*\\)\"/\1/" -e t -e d "$opt_dir/dlls/appwiz.cpl/addons.c" | grep "$sha" >/dev/null
+    then
+        return 0
+    fi
+    return 1
+}
+
+download_addon()
+{
+    addon="$1"
+    arch="$2"
+
+    key=`echo $addon | tr a-z A-Z`
+    version=`sed -e "s/^.*define  *${key}_VERSION *\"\\([^\"]*\\)\"/\\1/" -e t -e d "$opt_dir/dlls/appwiz.cpl/addons.c"`
+    if [ -z "$arch" ]
+    then
+        addon_base="wine-$addon-$version.msi"
+    else
+        addon_base="wine_$addon-$version-$arch.msi"
+    fi
+    addon_path="$opt_dir/../$addon/$addon_base"
+
+    if ! verify_addon "$key" "$addon_path"
+    then
+        error "the $addon_base checksum does not match, redownloading it"
+        rm -f "$addon_path"
+    fi
+    if [ ! -f "$addon_path" ]
+    then
+        mkdir -p `dirname "$addon_path"`
+        url="http://dl.winehq.org/wine/wine-$addon/$version/$addon_base"
+        $urlget "$url" >"$addon_path"
+        if ! verify_addon "$key" "$addon_path"
+        then
+            error "the $addon_base checksum does not match, aborting"
+            exit 1
+        fi
+    fi
+}
+
 if [ -n "$opt_new_wineprefix" ]
 then
     if [ -d "$opt_wineprefix/dosdevices" ]
@@ -605,42 +652,14 @@ then
         urlget="curl --location"
     fi
 
-    # Check whether to update Gecko
-    version=`sed -e 's/^.*GECKO_VERSION *"\([^"]*\)"/\1/' -e t -e d "$opt_dir/dlls/mshtml/nsiface.h"`
+    # Grab the addons
     arch="x86"
     if file "$opt_dir/programs/regedit/regedit.exe.so" | grep 'ELF 64' >/dev/null
     then
         arch="x86_64"
     fi
-    gecko="wine_gecko-$version-$arch.msi"
-    if [ ! -s "$opt_dir/../gecko/$gecko" ]
-    then
-        mkdir -p "$opt_dir/../gecko"
-        url="http://dl.winehq.org/wine/wine-gecko/$version/$gecko"
-        $urlget "$url" >"$opt_dir/../gecko/$gecko"
-        if [ $? -ne 0 ]
-        then
-            error "unable to download the new Gecko: $url"
-            rm -f "$opt_dir/../gecko/$gecko"
-            exit 1
-        fi
-    fi
-
-    # Check whether to update Mono
-    version=`sed -e 's/^.*define *MONO_VERSION *"\([^"]*\)"/\1/' -e t -e d "$src_dir/dlls/appwiz.cpl/addons.c"`
-    mono="wine-mono-$version.msi"
-    if [ ! -s "$opt_dir/../mono/$mono" ]
-    then
-        mkdir -p "$opt_dir/../mono"
-        url="http://dl.winehq.org/wine/wine-mono/$version/$mono"
-        $urlget "$url" >"$opt_dir/../mono/$mono"
-        if [ $? -ne 0 ]
-        then
-            error "unable to download the new Mono: $url"
-            rm -f "$opt_dir/../mono/$mono"
-            exit 1
-        fi
-    fi
+    download_addon "gecko" "$arch"
+    download_addon "mono"
 fi
 
 if [ "$platform" = "Darwin" -a -z "$opt_macdrv" ]
