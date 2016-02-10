@@ -457,7 +457,6 @@ do_build()
 
     echo
     echo "The build failed. Trying again from a clean tree..."
-    echo "src_dir='$src_dir' pwd=`pwd`"
     prepare_tree
     _clean="\"$dir0/wt-make\" distclean"
     _src=`cd "$src_dir" && pwd`
