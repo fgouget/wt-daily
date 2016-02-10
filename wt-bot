@@ -598,7 +598,7 @@ verify_addon()
     [ -f "$filename" ] || return 1
 
     sha=`sha1sum "$filename" | cut -d' ' -f1`
-    if sed -e "s/^.*define  *${key}_SHA *\"\\([^\"]*\\)\"/\1/" -e t -e d "$opt_dir/dlls/appwiz.cpl/addons.c" | grep "$sha" >/dev/null
+    if sed -e "s/^.*define  *${key}_SHA *\"\\([^\"]*\\)\"/\1/" -e t -e d "$src_dir/dlls/appwiz.cpl/addons.c" | grep "$sha" >/dev/null
     then
         return 0
     fi
@@ -611,7 +611,7 @@ download_addon()
     arch="$2"
 
     key=`echo $addon | tr a-z A-Z`
-    version=`sed -e "s/^.*define  *${key}_VERSION *\"\\([^\"]*\\)\"/\\1/" -e t -e d "$opt_dir/dlls/appwiz.cpl/addons.c"`
+    version=`sed -e "s/^.*define  *${key}_VERSION *\"\\([^\"]*\\)\"/\\1/" -e t -e d "$src_dir/dlls/appwiz.cpl/addons.c"`
     if [ -z "$arch" ]
     then
         addon_base="wine-$addon-$version.msi"
