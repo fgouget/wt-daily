@@ -81,7 +81,7 @@ ping -n 31 127.0.0.1 >nul
 
 REM Wait until the network is up.
 ping -n 1 test.winehq.org
-if %errorlevel% equ 1 goto start
+if %errorlevel% == 1 goto start
 
 
 REM Place the files on the desktop so they are easy to
@@ -90,15 +90,15 @@ for /f "delims='" %%i in ('powershell.exe -Command "[Environment]::GetFolderPath
 cd /d "%DESKTOPDIR%"
 
 REM Download the latest version of winetest
-:wget32
-if "%tag32%" == "" goto wget64
+:download32
+if "%tag32%" == "" goto download64
 powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://test.winehq.org/builds/winetest-latest.exe', 'winetest32.exe')"
-if %errorlevel% neq 0 goto wget32
+if %errorlevel% neq 0 goto download32
 
-:wget64
+:download64
 if "%tag64%" == "" goto run32
 powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://test.winehq.org/builds/winetest64-latest.exe', 'winetest64.exe')"
-if %errorlevel% neq 0 goto wget64
+if %errorlevel% neq 0 goto download64
 
 
 :run32
