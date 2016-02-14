@@ -103,7 +103,7 @@ set tries64=3
 REM Download the latest version of winetest
 :download32
 if "%tag32%" == "" goto download64
-powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://test.winehq.org/builds/winetest-latest.exe', 'winetest32.exe')"
+powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('https://test.winehq.org/builds/winetest-latest.exe', 'winetest32.exe')"
 if %errorlevel% equ 0 goto download64
 if %tries32% equ 1 goto download64
 set /A tries32=tries32-1
@@ -111,7 +111,7 @@ goto download32
 
 :download64
 if "%tag64%" == "" goto run32
-powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://test.winehq.org/builds/winetest64-latest.exe', 'winetest64.exe')"
+powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('https://test.winehq.org/builds/winetest64-latest.exe', 'winetest64.exe')"
 if %errorlevel% equ 0 goto run32
 if %tries64% equ 1 goto run32
 set /A tries64=tries64-1
