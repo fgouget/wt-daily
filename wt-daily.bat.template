@@ -81,7 +81,7 @@ ping -n 31 127.0.0.1 >nul
 
 REM Wait until the network is up.
 ping -n 1 test.winehq.org
-if %errorlevel% == 1 goto start
+if %errorlevel% equ 1 goto start
 
 
 REM Place the files on the desktop so they are easy to
@@ -96,7 +96,7 @@ powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://
 if %errorlevel% neq 0 goto wget32
 
 :wget64
-if "%tag64%" equ "" goto run32
+if "%tag64%" == "" goto run32
 powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://test.winehq.org/builds/winetest64-latest.exe', 'winetest64.exe')"
 if %errorlevel% neq 0 goto wget64
 
@@ -112,7 +112,7 @@ winetest32.exe -c -s winetest32.report
 
 :run64
 REM Run the 64-bit tests and store the report locally
-if "%tag64%" equ "" goto shutdown
+if "%tag64%" == "" goto shutdown
 winetest64.exe -c -o winetest64.report -t %tag64% -m %email% -i %desc64% >winetest64.log 2>&1
 
 REM Send the 64-bit report
@@ -120,7 +120,7 @@ winetest64.exe -c -s winetest64.report
 
 
 :shutdown
-if "%shutdown%" equ "" goto done
+if "%shutdown%" == "" goto done
 shutdown %shutdown%
 
 :done
