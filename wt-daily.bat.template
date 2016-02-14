@@ -29,6 +29,7 @@ for /f "tokens=*" %%i in ('hostname') do set HOSTNAME=%%i
 
 
 REM **** DO NOT QUOTE EMPTY CONFIGURATION VALUES *****
+REM       But do quote values containing spaces.
 
 REM How long to wait for the network in minutes.
 set netwait=30
@@ -82,6 +83,7 @@ set /A netwait=netwait*2
 :netloop
 REM Remember to disable the anti-virus and any other
 REM application that may interfere with the tests.
+REM *** Now is you chance to abort the tests ***
 ping -n 31 127.0.0.1 >nul
 
 REM Wait until the network is up.
