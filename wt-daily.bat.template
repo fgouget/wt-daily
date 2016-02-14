@@ -1,4 +1,4 @@
-REM Copyright (C) 2012-2015 Francois Gouget
+REM Copyright (C) 2012-2016 Francois Gouget
 REM 
 REM Downloads and runs WineTest.
 REM
@@ -91,6 +91,7 @@ cd /d "%DESKTOPDIR%"
 
 REM Download the latest version of winetest
 :wget32
+if "%tag32%" == "" goto wget64
 powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://test.winehq.org/builds/winetest-latest.exe', 'winetest32.exe')"
 if %errorlevel% neq 0 goto wget32
 
@@ -102,6 +103,7 @@ if %errorlevel% neq 0 goto wget64
 
 :run32
 REM Run the 32-bit tests and store the report locally
+if "%tag32%" == "" goto run64
 winetest32.exe -c -o winetest32.report -t %tag32% -m %email% -i %desc32% >winetest32.log 2>&1
 
 REM Send the 32-bit report
