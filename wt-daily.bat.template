@@ -30,6 +30,9 @@ for /f "tokens=*" %%i in ('hostname') do set HOSTNAME=%%i
 
 REM **** DO NOT QUOTE EMPTY CONFIGURATION VALUES *****
 
+REM How long to wait for the network in minutes.
+set netwait=30
+
 REM WineTest needs a valid email address so Wine developers can contact you
 REM if they have questions about a failing Wine test.
 set email=
@@ -75,30 +78,44 @@ goto shutdown
 
 
 :start
+set /A netwait=netwait*2
+:netloop
 REM Remember to disable the anti-virus and any other
 REM application that may interfere with the tests.
 ping -n 31 127.0.0.1 >nul
 
 REM Wait until the network is up.
 ping -n 1 test.winehq.org
-if %errorlevel% == 1 goto start
+if %errorlevel% equ 0 goto download
+if %netwait% equ 1 goto download
+set /A netwait=netwait-1
+goto netloop
 
 
+:download
 REM Place the files on the desktop so they are easy to
 REM find in case they need to be reviewed later on.
 for /f "delims='" %%i in ('powershell.exe -Command "[Environment]::GetFolderPath(\"Desktop\")"') do set DESKTOPDIR=%%i
 cd /d "%DESKTOPDIR%"
+set tries32=3
+set tries64=3
 
 REM Download the latest version of winetest
 :download32
 if "%tag32%" == "" goto download64
 powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://test.winehq.org/builds/winetest-latest.exe', 'winetest32.exe')"
-if %errorlevel% neq 0 goto download32
+if %errorlevel% equ 0 goto download64
+if %tries32% equ 1 goto download64
+set /A tries32=tries32-1
+goto download32
 
 :download64
 if "%tag64%" == "" goto run32
 powershell.exe -Command "(new-object System.Net.WebClient).DownloadFile('http://test.winehq.org/builds/winetest64-latest.exe', 'winetest64.exe')"
-if %errorlevel% neq 0 goto download64
+if %errorlevel% equ 0 goto run32
+if %tries64% equ 1 goto run32
+set /A tries64=tries64-1
+goto download64
 
 
 :run32
