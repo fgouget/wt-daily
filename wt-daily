@@ -347,7 +347,15 @@ check_tag()
 
 if [ -z "$usage" ]
 then
-    if [ -z "$opt_run" ]
+    if [ -n "$opt_pause$opt_restart$opt_cancel" ]
+    then
+        if [-n "$opt_update$opt_build$opt_test$opt_auto_test$opt_otheros$opt_auto_otheros$opt_shutdown" ]
+        then
+            error "--pause, --restart and --cancel are incompatible with the other options"
+            usage=2
+        fi
+
+    elif [ -z "$opt_run" ]
     then
         [ -z "$opt_update$opt_build$opt_test$opt_shutdown" ] && opt_shutdown="auto"
         if [ -z "$opt_update$opt_build$opt_test$opt_otheros" ]
@@ -380,10 +388,6 @@ then
         check_tag "$tagwow32" "$tagmac" "$tag"
         check_tag "$tagwow64" "$tagwow32" "$tagmac" "$tag"
 
-    elif [ -n "$opt_update$opt_build$opt_test" -o "$opt_shutdown" != "auto" ]
-    then
-        error "--pause, --restart and --cancel are incompatible with the other options"
-        usage=2
     fi
 fi
 
