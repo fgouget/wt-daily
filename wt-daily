@@ -608,6 +608,15 @@ then
     do_pause
     git fetch
 
+    git diff >"$name0.$$"
+    if [ -s "$name0.$$" ]
+    then
+        mv "$name0.$$" "$name0-backup.diff"
+        git reset --hard HEAD
+    else
+        rm "$name0.$$"
+    fi
+
     do_pause
     if ! git rebase $upstream
     then
