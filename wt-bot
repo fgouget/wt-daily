@@ -594,7 +594,8 @@ fi
 verify_addon()
 {
     key="$1"
-    filename="$2"
+    basename="$2"
+    filename="$3"
     [ -f "$filename" ] || return 1
 
     sha=`sha1sum "$filename" | cut -d' ' -f1`
@@ -602,6 +603,7 @@ verify_addon()
     then
         return 0
     fi
+    error "the $addon_base checksum does not match"
     return 1
 }
 
@@ -620,9 +622,9 @@ download_addon()
     fi
     addon_path="$opt_dir/../$addon/$addon_base"
 
-    if ! verify_addon "$key" "$addon_path"
+    if ! verify_addon "$key" "$addon_base" "$addon_path"
     then
-        error "the $addon_base checksum does not match, redownloading it"
+        echo "Downloading $addon_base"
         rm -f "$addon_path"
     fi
     if [ ! -f "$addon_path" ]
@@ -630,7 +632,7 @@ download_addon()
         mkdir -p `dirname "$addon_path"`
         url="http://dl.winehq.org/wine/wine-$addon/$version/$addon_base"
         $urlget "$url" >"$addon_path"
-        if ! verify_addon "$key" "$addon_path"
+        if ! verify_addon "$key" "$addon_base" "$addon_path"
         then
             error "the $addon_base checksum does not match, aborting"
             exit 1
