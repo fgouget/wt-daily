@@ -243,7 +243,7 @@ opt_test=""
 opt_auto_test=""
 opt_otheros=""
 opt_auto_otheros=""
-opt_shutdown="auto"
+opt_shutdown=""
 opt_run=""
 usage=""
 
@@ -357,7 +357,6 @@ then
 
     elif [ -z "$opt_run" ]
     then
-        [ -z "$opt_update$opt_build$opt_test$opt_shutdown" ] && opt_shutdown="auto"
         if [ -z "$opt_update$opt_build$opt_test$opt_otheros" ]
         then
             opt_update="1"
@@ -797,10 +796,9 @@ then
     # it a try.
     dry_run set_otheros_status "$latest_commitid" "$image"
     shutdown="reboot"
-    [ -n "$opt_shutdown" ] || opt_shutdown="1"
 fi
 
 do_pause
 cleanup
-[ "$opt_shutdown" != "1" -a "$opt_shutdown" != "auto" ] && shutdown=""
+[ "$opt_shutdown" = "0" ] && shutdown=""
 [ -n "$shutdown" ] && dry_run "$dir0/wt-power" "$shutdown"
