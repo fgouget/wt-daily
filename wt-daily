@@ -223,15 +223,19 @@ run=`cat "$test_root/run" 2>/dev/null`
 #
 #####
 
-if [ "$1" = "--self-update" ]
-then
-    self_update="1"
-    shift
-elif  [ "$1" = "--no-self-update" ]
-then
-    self_update=""
-    shift
-fi
+case "$1" in
+    --self-update)
+        self_update="1"
+        shift
+        ;;
+    --no-self-update)
+        self_update=""
+        shift
+        ;;
+    --pause|--cancel|--restart)
+        self_update=""
+        ;;
+esac
 if [ -n "$self_update" ]
 then
     self_update && exec "$dir0/$name0" "$@"
