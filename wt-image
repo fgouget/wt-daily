@@ -335,7 +335,8 @@ then
     fi
 
     meta_sha1=`get_meta_sha1 "$device"`
-    dry_run sh -c "time ntfsclone --save-image '$device' --output - | $compress -c >'$opt_image'"
+    dry_run ntfsclone --save-image "$device" --output - |
+        dry_run time $compress -c >"$opt_image"
     if [ -z "$opt_dry_run" ]
     then
         echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description" >"$wtimage_file"
@@ -368,7 +369,8 @@ else
             fi
             exit 3
         fi
-        dry_run sh -c "time $compress -d -c '$opt_image' | ntfsclone --restore-image --overwrite '$device' -"
+        dry_run time $compress -d -c "$opt_image" |
+            dry_run ntfsclone --restore-image --overwrite "$device" -
     elif [ "$opt_action" = "check" ]
     then
         echo "The partition matches the image"
