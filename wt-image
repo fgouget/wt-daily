@@ -310,7 +310,8 @@ uuid_to_device()
 get_meta_sha1()
 {
     device="$1"
-    ntfsclone --metadata --save-image --output - "$device" 2>/dev/null | sha1sum | cut -d' ' -f1
+    dry_run ntfsclone --metadata --save-image --output - "$device" 2>/dev/null |
+        sha1sum | cut -d' ' -f1
 }
 
 if [ "$opt_action" = "grub" ]
