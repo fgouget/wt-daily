@@ -185,8 +185,11 @@ then
             fi
             ;;
         *)
-            error "unknown image file type '$opt_image'"
-            opt_usage=2
+            if [ -n "$opt_image" ]
+            then
+                error "unknown image file type '$opt_image'"
+                opt_usage=2
+            fi
             ;;
     esac
     if [ -z "$opt_action" ]
