@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2009-2014 Francois Gouget
+# Copyright (C) 2009-2016 Francois Gouget
 #
 # Provides cross-platform support for powering off, rebooting or suspending the
 # computer.
@@ -28,7 +28,7 @@ dry_run()
 {
     if [ -n "$opt_dry_run" ]
     then
-        echo "$@"
+        echo "$@" >&2
     else
         "$@"
     fi

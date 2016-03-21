@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2013-2015 Francois Gouget
+# Copyright (C) 2013-2016 Francois Gouget
 #
 # Creates, checks, restores or reboots to a disk image.
 #
@@ -29,9 +29,10 @@ error()
 opt_dry_run=""
 dry_run()
 {
-    echo "$@"
-    if [ -z "$opt_dry_run" ]
+    if [ -n "$opt_dry_run" ]
     then
+        echo "$@" >&2
+    else
         "$@"
     fi
 }
