@@ -37,14 +37,88 @@ dry_run()
     fi
 }
 
-gzip_tool()
+gzip_wrapper()
 {
-    which pigz || echo gzip
+    cmd="$1"
+    filename="$2"
+    _tool=`which pigz || which gzip`
+    case "$cmd" in
+        check)
+            if [ ! -f "$filename" -o ! -r "$filename" ]
+            then
+                error "'$filename' does not exist or is not readable"
+                return 1
+            elif [ -z "$_tool" ]
+            then
+                error "could not find an xz tool for '$filename'"
+                return 1
+            fi
+            ;;
+        compress)
+            dry_run time "$_tool" -c >"$filename"
+            ;;
+        decompress)
+            dry_run time "$_tool" -c -d "$filename"
+            ;;
+    esac
 }
 
-xz_tool()
+xz_wrapper()
 {
-    which pxz || echo xz
+    cmd="$1"
+    filename="$2"
+    _tool=`which pxz || which xz`
+    case "$cmd" in
+        check)
+            if [ ! -f "$filename" -o ! -r "$filename" ]
+            then
+                error "'$filename' does not exist or is not readable"
+                return 1
+            elif [ -z "$_tool" ]
+            then
+                error "could not find a gzip tool for '$filename'"
+                return 1
+            fi
+            ;;
+        compress)
+            dry_run time "$_tool" -c >"$filename"
+            ;;
+        decompress)
+            dry_run time "$_tool" -c -d "$filename"
+            ;;
+    esac
+}
+
+borg_wrapper()
+{
+    cmd="$1"
+    filename="$2"
+    _tool=`which borg`
+    case "$cmd" in
+        check)
+            if [ ! -d "$borg_repo" ]
+            then
+                error "'$borg_repo' is not a borg repository"
+                return 1
+            elif [ -z "$_tool" ]
+            then
+                error "could not find the borg backup binary"
+                return 1
+            elif "$_tool" list --list-format "{path}{NEWLINE}" "$borg_repo::$filename" 2>/dev/null | egrep "^(stdin|$filename\\.img)$" >/dev/null
+            then
+                return 0
+            fi
+            error "the '$borg_repo::$filename' borg archive does not exist or does not contain the expected file"
+            return 1
+            ;;
+        compress)
+            dry_run time "$_tool" create -C zlib "$borg_repo::$filename" - "$wtimage_file"
+            ;;
+        decompress)
+            borg_image=`borg list --list-format "{path}{NEWLINE}" "$borg_repo::$filename" 2>/dev/null | egrep "^(stdin|$filename\\.img)$"`
+            dry_run time "$_tool" extract --stdout "$borg_repo::$filename" "$borg_image"
+            ;;
+    esac
 }
 
 
@@ -166,22 +240,33 @@ then
     case "$opt_image" in
         *.img.gz)
             wtimage_file=`echo "$opt_image" | sed -e 's/\.img\.gz$/.wtimage/'`
-            compress=`gzip_tool`
+            compress="gzip_wrapper"
             ;;
         *.img.xz)
             wtimage_file=`echo "$opt_image" | sed -e 's/\.img\.xz$/.wtimage/'`
-            compress=`xz_tool`
+            compress="xz_wrapper"
             ;;
         *.wtimage)
             wtimage_file="$opt_image"
-            opt_image=`echo "$opt_image" | sed -e 's/\.wtimage$/.img/'`
-            if [ -f "$opt_image.gz" ]
+            opt_image=`echo "$opt_image" | sed -e 's/\.wtimage$//'`
+            if [ -f "$opt_image.img.gz" ]
             then
-                opt_image="$opt_image.gz"
-                compress=`gzip_tool`
+                opt_image="$opt_image.img.gz"
+                compress="gzip_wrapper"
+            elif [ -f "$opt_image.img.xz" ]
+            then
+                opt_image="$opt_image.img.xz"
+                compress="xz_wrapper"
             else
-                opt_image="$opt_image.xz"
-                compress=`xz_tool`
+                borg_repo=`dirname "$opt_image"`/"$name0.borg"
+                if [ -d "$borg_repo" ]
+                then
+                    compress="borg_wrapper"
+                    opt_image=`basename "$opt_image"`
+                else
+                    opt_image="$opt_image.img.xz"
+                    compress="xz_wrapper"
+                fi
             fi
             ;;
         *)
@@ -200,9 +285,8 @@ then
     then
         # Nothing to do
         true
-    elif [ "$opt_action" != "backup" -a ! -f "$opt_image" ]
+    elif [ "$opt_action" != "backup" ] && ! $compress check "$opt_image"
     then
-        error "'$opt_image' is not a file"
         opt_usage=2
     elif [ -z "$opt_image" ]
     then
@@ -339,8 +423,6 @@ then
     fi
 
     meta_sha1=`get_meta_sha1 "$device"`
-    dry_run ntfsclone --save-image "$device" --output - |
-        dry_run time $compress -c >"$opt_image"
     if [ -z "$opt_dry_run" ]
     then
         echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description" >"$wtimage_file"
@@ -348,6 +430,8 @@ then
     else
         echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description"
     fi
+    dry_run ntfsclone --save-image '$device' --output - |
+        $compress compress "$opt_image"
 
 else
     # Check / Restore
@@ -373,7 +457,7 @@ else
             fi
             exit 3
         fi
-        dry_run time $compress -d -c "$opt_image" |
+        $compress decompress "$opt_image" |
             dry_run ntfsclone --restore-image --overwrite "$device" -
     elif [ "$opt_action" = "check" ]
     then
