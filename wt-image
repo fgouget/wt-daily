@@ -336,6 +336,10 @@ then
     exit 0
 fi
 
+tmpdir="$TMPDIR"
+[ -n "$tmpdir" ] || tmpdir="/tmp"
+rcfile="$tmpdir/$name0.$$"
+
 
 ### Image file handling
 
@@ -409,8 +413,11 @@ uuid_to_device()
 get_meta_sha1()
 {
     device="$1"
-    dry_run ntfsclone --metadata --save-image --output - "$device" 2>/dev/null |
-        sha1sum | cut -d' ' -f1
+    sha1=`(dry_run ntfsclone --metadata --save-image --output - "$device" 2>/dev/null; echo $? >"$rcfile") | sha1sum | cut -d' ' -f1`
+    rc=`cat "$rcfile"`
+    rm -f "$rcfile"
+    [ $rc -ne 0 ] && return $rc
+    echo "$sha1"
 }
 
 if [ "$opt_action" = "grub" ]
@@ -435,6 +442,11 @@ then
     fi
 
     meta_sha1=`get_meta_sha1 "$device"`
+    if [ $? -ne 0 ]
+    then
+        error "could not get the '$device' metadata checksum"
+        exit 1
+    fi
     if [ -z "$opt_dry_run" ]
     then
         echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description" "$opt_config" >"$wtimage_file"
@@ -442,8 +454,21 @@ then
     else
         echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description" "$opt_config"
     fi
-    dry_run ntfsclone --save-image '$device' --output - |
+    ( dry_run ntfsclone --save-image "$device" --output -; echo $? >"$rcfile" ) |
         $compress compress "$opt_image"
+    if [ $? -ne 0 ]
+    then
+        error "an error ocurred while compressing to '$opt_image'"
+        rm -f "$rcfile"
+        exit 1
+    fi
+    rc=`cat "$rcfile"`
+    rm -f "$rcfile"
+    if [ $rc -ne 0 ]
+    then
+        error "could not save '$device'"
+        exit 1
+    fi
 
 else
     # Check / Restore
@@ -470,8 +495,21 @@ else
             fi
             exit 3
         fi
-        $compress decompress "$opt_image" |
+        ( $compress decompress "$opt_image"; echo $? >"$rcfile" ) |
             dry_run ntfsclone --restore-image --overwrite "$device" -
+        if [ $? -ne 0 ]
+        then
+            error "could not restore '$device'"
+            rm -f "$rcfile"
+            exit 1
+        fi
+        rc=`cat "$rcfile"`
+        rm -f "$rcfile"
+        if [ $rc -ne 0 ]
+        then
+            error "could not decompress '$opt_image'"
+            exit 1
+        fi
     elif [ "$opt_action" = "check" ]
     then
         echo "The partition matches the image"
