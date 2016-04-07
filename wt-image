@@ -329,9 +329,16 @@ then
                 opt_image="$opt_image.img.xz"
                 compress="xz_wrapper"
             else
-                borg_repo=`dirname "$opt_image"`/"$name0.borg"
-                if [ -d "$borg_repo" ]
+                hostname=`hostname | cut -d. -f1`
+                borg_repo=`dirname "$opt_image"`
+                if [ -d "$borg_repo/$name0.borg" ]
                 then
+                    borg_repo="$borg_repo/$name0.borg"
+                    compress="borg_wrapper"
+                    opt_image=`basename "$opt_image"`
+                elif [ -d "$borg_repo/$hostname-$name0.borg" ]
+                then
+                    borg_repo="$borg_repo/$hostname-$name0.borg"
                     compress="borg_wrapper"
                     opt_image=`basename "$opt_image"`
                 else
