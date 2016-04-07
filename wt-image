@@ -37,11 +37,58 @@ dry_run()
     fi
 }
 
+img_wrapper()
+{
+    cmd="$1"
+    filename="$2"
+    case "$cmd" in
+        check)
+            if [ ! -f "$filename" -o ! -r "$filename" ]
+            then
+                error "'$filename' does not exist or is not readable"
+                return 1
+            fi
+            ;;
+        compress)
+            dry_run time cat >"$filename"
+            ;;
+        decompress)
+            dry_run time cat "$filename"
+            ;;
+    esac
+}
+
 gzip_wrapper()
 {
     cmd="$1"
     filename="$2"
     _tool=`which pigz || which gzip`
+    case "$cmd" in
+        check)
+            if [ ! -f "$filename" -o ! -r "$filename" ]
+            then
+                error "'$filename' does not exist or is not readable"
+                return 1
+            elif [ -z "$_tool" ]
+            then
+                error "could not find an xz tool for '$filename'"
+                return 1
+            fi
+            ;;
+        compress)
+            dry_run time "$_tool" -c >"$filename"
+            ;;
+        decompress)
+            dry_run time "$_tool" -c -d "$filename"
+            ;;
+    esac
+}
+
+bzip2_wrapper()
+{
+    cmd="$1"
+    filename="$2"
+    _tool=`which pbzip2 || which bzip2`
     case "$cmd" in
         check)
             if [ ! -f "$filename" -o ! -r "$filename" ]
@@ -246,9 +293,17 @@ then
 	opt_image=`readlink "$opt_image"`
     fi
     case "$opt_image" in
+        *.img)
+            wtimage_file=`echo "$opt_image" | sed -e 's/\.img$/.wtimage/'`
+            compress="img_wrapper"
+            ;;
         *.img.gz)
             wtimage_file=`echo "$opt_image" | sed -e 's/\.img\.gz$/.wtimage/'`
             compress="gzip_wrapper"
+            ;;
+        *.img.bz2)
+            wtimage_file=`echo "$opt_image" | sed -e 's/\.img\.bz2$/.wtimage/'`
+            compress="bzip2_wrapper"
             ;;
         *.img.xz)
             wtimage_file=`echo "$opt_image" | sed -e 's/\.img\.xz$/.wtimage/'`
@@ -257,10 +312,18 @@ then
         *.wtimage)
             wtimage_file="$opt_image"
             opt_image=`echo "$opt_image" | sed -e 's/\.wtimage$//'`
-            if [ -f "$opt_image.img.gz" ]
+            if [ -f "$opt_image.img" ]
+            then
+                opt_image="$opt_image.img"
+                compress="img_wrapper"
+            elif [ -f "$opt_image.img.gz" ]
             then
                 opt_image="$opt_image.img.gz"
                 compress="gzip_wrapper"
+            elif [ -f "$opt_image.img.bz2" ]
+            then
+                opt_image="$opt_image.img.bz2"
+                compress="bzip2_wrapper"
             elif [ -f "$opt_image.img.xz" ]
             then
                 opt_image="$opt_image.img.xz"
@@ -322,7 +385,8 @@ then
     echo
 
     echo "Where:"
-    echo "  IMAGE         The disk image file or .wtimage file to work on."
+    echo "  IMAGE         The disk image file or .wtimage file to work on. Disk images can"
+    echo "                be compressed with gzip, bzip2, xz, or uncompressed."
     echo "  --dry-run     Show what would happen but do nothing."
     echo "  --check       Check if the partition still matches the disk image."
     echo "  --restore     Restores the disk image to the partition."
