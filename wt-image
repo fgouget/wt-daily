@@ -147,6 +147,7 @@ check_opt_val()
 opt_image=""
 opt_backup=""
 opt_description=""
+opt_config=""
 opt_action=""
 opt_quiet=""
 opt_usage=""
@@ -203,6 +204,13 @@ do
         if check_opt_val "$arg" "$opt_description" $#
         then
             opt_description="$1"
+            shift
+        fi
+        ;;
+   --config)
+        if check_opt_val "$arg" "$opt_config" $#
+        then
+            opt_config="$1"
             shift
         fi
         ;;
@@ -293,9 +301,9 @@ then
         error "you must specify the ntfs image to work on"
         opt_usage=2
     fi
-    if [ -n "$opt_description" -a "$opt_action" != "backup" ]
+    if [ -n "$opt_description$opt_config" -a "$opt_action" != "backup" ]
     then
-        error "the --description option can only be used with the --backup action"
+        error "--description and --config can only be used with the --backup action"
         opt_usage=2
     fi
 fi
@@ -307,7 +315,7 @@ then
         exit $opt_usage
     fi
     echo "Usage: $name0 [--dry-run] [--check|--restore|--backup UUID]"
-    echo "                [--description DESC] IMAGE"
+    echo "                [--description DESC] [--config CONFIG] IMAGE"
     echo
 
     echo "Creates, checks, restores or reboots to a disk image."
@@ -320,8 +328,10 @@ then
     echo "  --restore     Restores the disk image to the partition."
     echo "  --backup UUID Creates a disk image of the specified partition. The UUID is"
     echo "                the partition's unique identifier."
-    echo "  --description DESC A description to store in the .wtimage file when backing"
-    echo "                it up for documentation purposes."
+    echo "  --description DESC A description to store in the .wtimage file for"
+    echo "                documentation purposes when backing it up."
+    echo "  --config CONFIG Extra configuration information to store in the .wtimage file"
+    echo "                for documentation purposes when backing it up."
     echo "  --help, -h    Shows this help message."
     exit 0
 fi
@@ -370,12 +380,14 @@ echo_wtimage()
     _uuid="$1"
     _sha1="$2"
     _description="$3"
+    _config="$4"
     _wtimage=`perl -e "use Cwd; print Cwd::realpath('$0')"`
     echo "#!$_wtimage"
     echo "img_tool=ntfsclone"
     echo "img_uuid=$_uuid"
     echo "img_meta_sha1=$_sha1"
     echo "img_description=\"$_description\""
+    echo "img_config=\"$_config\""
 }
 
 uuid_to_device()
@@ -425,10 +437,10 @@ then
     meta_sha1=`get_meta_sha1 "$device"`
     if [ -z "$opt_dry_run" ]
     then
-        echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description" >"$wtimage_file"
+        echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description" "$opt_config" >"$wtimage_file"
         chmod +x "$wtimage_file"
     else
-        echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description"
+        echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description" "$opt_config"
     fi
     dry_run ntfsclone --save-image '$device' --output - |
         $compress compress "$opt_image"
@@ -451,6 +463,7 @@ else
             then
                 echo "Partition:   $device"
                 echo "Description: $img_description"
+                echo "Extra configuration: $img_config"
                 echo "Part. sha1:  $meta_sha1"
                 echo "Image sha1:  $img_meta_sha1"
                 echo "The partition needs re-imaging"
