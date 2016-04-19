@@ -480,11 +480,21 @@ uuid_to_device()
     fi
 }
 
+sha1_wrapper()
+{
+    if which sha1sum >/dev/null 2>&1
+    then
+        sha1sum "$@" | cut -d' ' -f1
+    elif which sha1 >/dev/null 2>&1
+    then
+        sha1 "$@" | sed -e 's/^.* = //'
+    fi
+}
 
 get_meta_sha1()
 {
     device="$1"
-    sha1=`(dry_run ntfsclone --metadata --save-image --output - "$device" 2>/dev/null; echo $? >"$rcfile") | sha1sum | cut -d' ' -f1`
+    sha1=`(dry_run ntfsclone --metadata --save-image --output - "$device" 2>/dev/null; echo $? >"$rcfile") | sha1_wrapper`
     rc=`cat "$rcfile"`
     rm -f "$rcfile"
     [ $rc -ne 0 ] && return $rc
