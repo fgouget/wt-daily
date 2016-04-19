@@ -591,6 +591,17 @@ fi
 
 ##### --new-wineprefix
 
+sha1_wrapper()
+{
+    if which sha1sum >/dev/null 2>&1
+    then
+        sha1sum "$@" | cut -d' ' -f1
+    elif which sha1 >/dev/null 2>&1
+    then
+       sha1 "$@" | sed -e 's/^.* = //'
+    fi
+}
+
 verify_addon()
 {
     key="$1"
@@ -598,7 +609,7 @@ verify_addon()
     filename="$3"
     [ -f "$filename" ] || return 1
 
-    sha=`sha1sum "$filename" | cut -d' ' -f1`
+    sha=`sha1_wrapper "$filename"`
     if sed -e "s/^.*define  *${key}_SHA *\"\\([^\"]*\\)\"/\1/" -e t -e d "$src_dir/dlls/appwiz.cpl/addons.c" | grep "$sha" >/dev/null
     then
         return 0
