@@ -24,27 +24,6 @@ esac
 dir0=`realpath "$dir0" 2>/dev/null || echo "$dir0"`
 dir0=`dirname "$dir0"`
 
-self_update()
-{
-    # Run the commands in a subshell so as to not impact the
-    # current directory even if one of them fails.
-    (
-        set -e
-        cd "$dir0"
-        git fetch
-        oldcommit=`git rev-parse HEAD`
-        # Without $upstream git systematically does a rebase, even if the
-        # branch is already up to date.
-        upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
-        if ! git rebase -q $upstream
-        then
-            git rebase --abort
-            exit 1
-        fi
-        [ `git rev-parse HEAD` != "$oldcommit" ]
-    )
-}
-
 
 #####
 #
@@ -219,9 +198,34 @@ run=`cat "$test_root/run" 2>/dev/null`
 
 #####
 #
-# Command line processing
+# Perform the self-update
 #
 #####
+
+# The self-update must be performed after reading the configuration file (so
+# it can set the self_updat'e default) but before parsing the command line so
+# that "$@" is still usable.
+
+self_update()
+{
+    # Run the commands in a subshell so as to not impact the
+    # current directory even if one of them fails.
+    (
+        set -e
+        cd "$dir0"
+        git fetch
+        oldcommit=`git rev-parse HEAD`
+        # Without $upstream git systematically does a rebase, even if the
+        # branch is already up to date.
+        upstream=`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true`
+        if ! git rebase -q $upstream
+        then
+            git rebase --abort
+            exit 1
+        fi
+        [ `git rev-parse HEAD` != "$oldcommit" ]
+    )
+}
 
 case "$1" in
     --self-update)
@@ -240,6 +244,13 @@ if [ -n "$self_update" ]
 then
     self_update && exec "$dir0/$name0" "$@"
 fi
+
+
+#####
+#
+# Command line processing
+#
+#####
 
 opt_update=""
 opt_build=""
