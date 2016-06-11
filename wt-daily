@@ -444,7 +444,13 @@ cleanup
 echo "$$" >"$test_root/$name0.pid"
 
 # Clean up on exit
-trap cleanup INT TERM EXIT
+abort()
+{
+    echo "cancel" >"$test_root/run"
+    cleanup
+}
+
+trap abort INT TERM EXIT
 
 
 #####
