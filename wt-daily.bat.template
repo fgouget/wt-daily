@@ -51,14 +51,19 @@ REM   A string describing this test configuration. This is meant to help Wine
 REM   developers figure out what could impact the test results like which
 REM   graphics card you have, the graphics driver, your locale if non-English,
 REM   etc.
+REM - exclude
+REM   A space-separated list of tests to exclude. Tests should only be
+REM   excluded if they cause Windows to crash.
 
 REM If tag32 is non empty then the 32 bit tests will be run.
 set tag32=
 set desc32=
+set exclude32=
 
 REM If tag64 is non empty then the 64 bit tests will be run.
 set tag64=
 set desc64=
+set exclude64=
 
 REM If set to -s the computer will be powered off after the tests.
 REM If set to -r it will be rebooted. Otherwise it will keep running.
@@ -68,8 +73,10 @@ goto start
 REM :host2
 REM set tag32=
 REM set desc32=
+REM set exclude32=
 REM set tag64=
 REM set desc64=
+REM set exclude64=
 REM set shutdown=-s
 REM goto start
 
@@ -123,7 +130,8 @@ goto download64
 :run32
 REM Run the 32-bit tests and store the report locally
 if "%tag32%" == "" goto run64
-winetest32.exe -c -o winetest32.report -t %tag32% -m %email% -i %desc32% >winetest32.log 2>&1
+if NOT "%exclude32%" == "" set exclude32=-n %exclude32%
+winetest32.exe -c -o winetest32.report -t %tag32% -m %email% -i %desc32% %exclude32% >winetest32.log 2>&1
 
 REM Send the 32-bit report
 winetest32.exe -c -s winetest32.report
@@ -132,7 +140,8 @@ winetest32.exe -c -s winetest32.report
 :run64
 REM Run the 64-bit tests and store the report locally
 if "%tag64%" == "" goto shutdown
-winetest64.exe -c -o winetest64.report -t %tag64% -m %email% -i %desc64% >winetest64.log 2>&1
+if NOT "%exclude64%" == "" set exclude64=-n %exclude64%
+winetest64.exe -c -o winetest64.report -t %tag64% -m %email% -i %desc64% %exclude64% >winetest64.log 2>&1
 
 REM Send the 64-bit report
 winetest64.exe -c -s winetest64.report
