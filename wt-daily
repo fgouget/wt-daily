@@ -236,7 +236,7 @@ case "$1" in
         self_update=""
         shift
         ;;
-    --pause|--cancel|--restart)
+    --pause|--cancel|--restart|--resume)
         self_update=""
         ;;
 esac
@@ -283,7 +283,7 @@ parse_arguments()
             --no-shutdown) [ -z "$opt_shutdown" ] && opt_shutdown="0" ;;
             --pause)       [ -z "$opt_run" ] && opt_run="pause" ;;
             --cancel)      [ -z "$opt_run" ] && opt_run="cancel" ;;
-            --restart)     [ -z "$opt_run" ] && opt_run="restart" ;;
+            --resume|--restart) [ -z "$opt_run" ] && opt_run="resume" ;;
             --dry-run)     [ -z "$opt_dry_run" ] && opt_dry_run="1" ;;
             --help|-h|-?)
                 usage=0
@@ -309,7 +309,7 @@ then
     echo "                [--build|--no-build] [--test|--no-test] [--auto-test]"
     echo "                [--otheros|--no-otheros] [--auto-otheros]"
     echo "                [--shutdown|--no-shutdown] [--dry-run]"
-    echo "or     $name0 [--pause|--cancel|--restart] [--help]"
+    echo "or     $name0 [--pause|--cancel|--resume] [--help]"
     echo
 
     echo "Orchestrates all the daily WineTest runs and related tasks."
@@ -327,7 +327,7 @@ then
     echo "  --shutdown   Perform the configured shutdown operation once done."
     echo "  --dry-run    Show what would happen but do nothing."
     echo "  --pause      Request the running $name0 instance to make a pause at its earliest convenience."
-    echo "  --restart    Request the running $name0 instance to resume the tests."
+    echo "  --resume    Request the running $name0 instance to resume the tests."
     echo "  --cancel     Request the running $name0 instance to cancel the remaining tests at its earliest convenience."
     run_ext print_extra_usage
     echo "  --help, -h   Shows this help message."
@@ -362,11 +362,11 @@ check_tag()
 
 if [ -z "$usage" ]
 then
-    if [ -n "$opt_pause$opt_restart$opt_cancel" ]
+    if [ -n "$opt_pause$opt_resume$opt_cancel" ]
     then
         if [-n "$opt_update$opt_build$opt_test$opt_auto_test$opt_otheros$opt_auto_otheros$opt_shutdown" ]
         then
-            error "--pause, --restart and --cancel are incompatible with the other options"
+            error "--pause, --resume and --cancel are incompatible with the other options"
             usage=2
         fi
 
@@ -414,7 +414,7 @@ fi
 case "$opt_run" in
     pause) echo "pause" >"$test_root/run"; exit 0 ;;
     cancel) echo "cancel" >"$test_root/run"; exit 0 ;;
-    restart) rm -f "$test_root/run"; exit 0 ;;
+    resume) rm -f "$test_root/run"; exit 0 ;;
 esac
 
 
