@@ -702,6 +702,7 @@ get_git_head()
     fi
 }
 
+logbase="$name0-$opt_winetest"
 [ -n "$failed_compile" ] && opt_winetest=""
 if [ -n "$opt_winetest" -a -n "$opt_skip_old" ]
 then
@@ -710,7 +711,7 @@ then
     then
         error "unable to determine the current commit id"
     else
-        last=`cat "$name0-$opt_winetest.commit" 2>/dev/null`
+        last=`cat "$logbase.commit" 2>/dev/null`
         [ "$last" != "$latest" ] || opt_winetest=""
     fi
 fi
@@ -740,7 +741,6 @@ then
 
     sleep 10800 &
     sleep_pid=$!
-    logbase="$name0-$opt_winetest"
     rm -f "$logbase.report"
 
     "$dir0/wt-screensaver" 10800 &
@@ -794,12 +794,12 @@ __EOF__
             then
                 echo
                 echo "*****"
-                echo "winetest failed (rc=$rc, see $name0-$opt_winetest.log):"
-                tail "$name0-$opt_winetest.log"
+                echo "winetest failed (rc=$rc, see $logbase.log):"
+                tail "$logbase.log"
                 errors="1"
             elif [ -n "$opt_submit" ]
             then
-                echo "$latest" >"$name0-$opt_winetest.commit"
+                echo "$latest" >"$logbase.commit"
             fi
             winetest_pid=""
             break
@@ -812,8 +812,8 @@ __EOF__
             then
                 echo
                 echo "*****"
-                echo "winetest got stuck (see $name0-$opt_winetest.log):"
-                tail "$name0-$opt_winetest.log"
+                echo "winetest got stuck (see $logbase.log):"
+                tail "$logbase.log"
                 errors="1"
                 break
             fi
@@ -833,8 +833,8 @@ __EOF__
     then
         echo
         echo "*****"
-        echo "winetest timed out (see $name0-$opt_winetest.log):"
-        tail "$name0-$opt_winetest.log"
+        echo "winetest timed out (see $logbase.log):"
+        tail "$logbase.log"
         errors="1"
     fi
 
