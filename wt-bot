@@ -797,6 +797,18 @@ __EOF__
                 echo "winetest failed (rc=$rc, see $logbase.log):"
                 tail "$logbase.log"
                 errors="1"
+            elif ! grep "Running: Done" "$logbase.log" >/dev/null
+            then
+                echo
+                echo "*****"
+                echo "winetest could not complete (see $logbase.log):"
+                tail "$logbase.log"
+            elif ! grep "Network transfer: Done" "$logbase.log" >/dev/null
+            then
+                echo
+                echo "*****"
+                echo "The network transfer failed (see $logbase.log):"
+                tail "$logbase.log"
             elif [ -n "$opt_submit" ]
             then
                 echo "$latest" >"$logbase.commit"
