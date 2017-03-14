@@ -787,7 +787,7 @@ then
         dry_run time "$dir0/wt-bot" --skip-old --submit --email "$email" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
                 --dir "$test_root/wow64" --winetest "$tagwow64" \
-                --desc "$descwow64" --exclude "$exclude"
+                --desc "$descwow64" --exclude "$excludewow64"
     fi
 
     if [ -n "$tagwow32" ]
@@ -798,9 +798,8 @@ then
         dry_run time "$dir0/wt-bot" --skip-old --submit --email "$email" \
                 --wineprefix "$test_root/wineprefix" \
                 --dir "$test_root/wow64" --winetest "$tagwow32" \
-                --desc "$descwow32" --exclude "$exclude" \
+                --desc "$descwow32" --exclude "$excludewow32" \
                 --testexe "$test_root/wow32/programs/winetest/winetest.exe.so"
-
     fi
 
     rm -rf "$test_root/wineprefix"
