@@ -87,6 +87,7 @@ opt_email=""
 opt_desc=""
 opt_exclude=""
 opt_submit=""
+opt_submit_urls=""
 opt_skip_old=""
 opt_extras=""
 usage=""
@@ -200,6 +201,13 @@ do
     --submit)
         opt_submit="1"
         ;;
+    --submit-urls)
+        if check_opt_val "$arg" "$opt_submit_urls" $#
+        then
+            opt_submit_urls="$1"
+            shift
+        fi
+        ;;
     --skip-old)
         opt_skip_old="1"
         ;;
@@ -272,9 +280,9 @@ then
             usage="2"
         fi
     else
-        if [ -n "$opt_email$opt_desc$opt_testexe$opt_skip_old$opt_submit$opt_exclude" ]
+        if [ -n "$opt_email$opt_desc$opt_testexe$opt_skip_old$opt_submit$opt_submit_urls$opt_exclude" ]
         then
-            error "--email, --desc, --testexe, --skip-old, --submit and --exclude cannot be used without --winetest"
+            error "--email, --desc, --testexe, --skip-old, --submit, --submit-urls and --exclude cannot be used without --winetest"
             usage="2"
         fi
     fi
@@ -287,8 +295,8 @@ then
     echo "              [--build [--64|--wow|--pe32|--pe64] [--chroot ROOT] [--gcc GCC]"
     echo "              [--build-retry]] [--wineprefix DIR] [--new-wineprefix]"
     echo "              [--winetest TAG [--email EMAIL] [--desc DESC] [--exclude TESTS]"
-    echo "              [--macdrv] [--testexe PATH] [--skip-old] [--no-submit]]"
-    echo "              [--spelling] [--winapicheck] [--help]"
+    echo "              [--macdrv] [--testexe PATH] [--skip-old] [--no-submit]"
+    echo "              [--submit-urls URL1[,URL2]] [--spelling] [--winapicheck] [--help]"
     echo
 
     echo "Update, build and check the Wine source code, and run the tests."
@@ -330,6 +338,9 @@ then
     echo "                    '$name0-TAG.commit'. This option skips the tests if the last"
     echo "                    commit has not changed."
     echo "    --no-submit     Don't submit the test results."
+    echo "    --submit-urls URL1[,URL2] A comma-separated list of URLs to submit the test"
+    echo "                    results to. An empty string means sending the results to the"
+    echo "                    default URL. Duplicate entries will cause duplicate uploads."
     echo "  --spelling        Looks for spelling errors if the 'typos' tool is available."
     echo "                    The result is stored in 'spelling.txt'."
     echo "  --winapicheck     Runs winapi_check on the Wine source and store the report"
@@ -777,7 +788,21 @@ __EOF__
         set -x
         time $cmd $opt_testexe -c -t $opt_winetest -m "$opt_email" \
              -i "$opt_desc" -o "$logbase.report" $opt_exclude
-        [ -n "$opt_submit" ] && time $cmd $opt_testexe -c -s "$logbase.report"
+        set +x
+        if [ -n "$opt_submit" ]
+        then
+            saved_IFS=$IFS
+            IFS=","
+            for url in $opt_submit_urls
+            do
+                IFS=$saved_IFS
+                options=""
+                [ -n "$url" ] && options="-S $url"
+                set -x
+                time $cmd $opt_testexe -c -s "$logbase.report" $options
+                set +x
+            done
+        fi
     } >"$logbase.log" 2>&1 &
     winetest_pid=$!
     progress=""
