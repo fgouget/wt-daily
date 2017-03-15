@@ -38,6 +38,10 @@ REM WineTest needs a valid email address so Wine developers can contact you
 REM if they have questions about a failing Wine test.
 set email=
 
+REM If you have a development WineTest website you can set this if you want
+REM the results to be sent there too.
+set extrasubmit=
+
 REM It is possible to consolidate multiple scripts into one by checking
 REM the %HOSTNAME% and %WINVER% environment variables. For instance:
 REM if %HOSTNAME% neq host1 goto host2
@@ -133,8 +137,12 @@ if "%tag32%" == "" goto run64
 if NOT "%exclude32%" == "" set exclude32=-n %exclude32%
 winetest32.exe -c -o winetest32.report -t %tag32% -m %email% -i %desc32% %exclude32% >winetest32.log 2>&1
 
-REM Send the 32-bit report
+REM Send the 32-bit report to the official WineTest website
 winetest32.exe -c -s winetest32.report
+
+if "%extrasubmit%" == "" goto run64
+REM And then to the development one
+winetest32.exe -c -s winetest32.report -S %extrasubmit%
 
 
 :run64
@@ -143,8 +151,12 @@ if "%tag64%" == "" goto shutdown
 if NOT "%exclude64%" == "" set exclude64=-n %exclude64%
 winetest64.exe -c -o winetest64.report -t %tag64% -m %email% -i %desc64% %exclude64% >winetest64.log 2>&1
 
-REM Send the 64-bit report
+REM Send the 64-bit report to the official WineTest website
 winetest64.exe -c -s winetest64.report
+
+if "%extrasubmit%" == "" goto shutdown
+REM And then to the development one
+winetest64.exe -c -s winetest64.report -S %extrasubmit%
 
 
 :shutdown
