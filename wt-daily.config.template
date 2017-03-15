@@ -19,6 +19,12 @@ test_root="$dir0/winetest"
 # if they have questions about a failing Wine test
 email=""
 
+# If empty the test report will be uploaded to the official WineTest website.
+# To send the results to a development website set submit_urls to a
+# comma-separated list of URLs to use. Note that an empty URL will send the
+# results to the official website.
+submit_urls=""
+
 # For each test specify:
 # - tag
 #   WineTest's tag identifying this test configuration
