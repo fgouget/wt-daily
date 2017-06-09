@@ -616,6 +616,20 @@ sha1_wrapper()
     fi
 }
 
+sha256_wrapper()
+{
+    if which sha256sum >/dev/null 2>&1
+    then
+        sha256sum "$@" | cut -d' ' -f1
+    elif which shasum >/dev/null 2>&1
+    then
+       shasum -a 256 "$@" | cut -d' ' -f1
+    elif which sha256 >/dev/null 2>&1
+    then
+       sha256 "$@" | sed -e 's/^.* = //'
+    fi
+}
+
 verify_addon()
 {
     key="$1"
@@ -623,11 +637,17 @@ verify_addon()
     filename="$3"
     [ -f "$filename" ] || return 1
 
-    sha=`sha1_wrapper "$filename"`
-    if sed -e "s/^.*define  *${key}_SHA *\"\\([^\"]*\\)\"/\1/" -e t -e d "$src_dir/dlls/appwiz.cpl/addons.c" | grep "$sha" >/dev/null
-    then
-        return 0
-    fi
+    checksums=`sed -e "s/^.*define  *${key}_SHA *\"\\([^\"]*\\)\"/\1/" -e t -e d "$src_dir/dlls/appwiz.cpl/addons.c"`
+    for refsum in $checksums
+    do
+        if [ `echo $refsum | wc -c` -gt 42 ]
+        then
+            csum=`sha256_wrapper "$filename"`
+        else
+            csum=`sha1_wrapper "$filename"`
+        fi
+        [ "$refsum" = "$csum" ] && return 0
+    done
     error "the $addon_base checksum does not match"
     return 1
 }
