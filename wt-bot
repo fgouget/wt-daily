@@ -607,6 +607,9 @@ sha1_wrapper()
     if which sha1sum >/dev/null 2>&1
     then
         sha1sum "$@" | cut -d' ' -f1
+    elif which shasum >/dev/null 2>&1
+    then
+       shasum -a 1 "$@" | cut -d' ' -f1
     elif which sha1 >/dev/null 2>&1
     then
        sha1 "$@" | sed -e 's/^.* = //'
