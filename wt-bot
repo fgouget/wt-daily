@@ -814,6 +814,9 @@ __EOF__
         set +x
         if [ -n "$opt_submit" ]
         then
+            # If unset, add a comma so we get in the for loop and send the
+            # results to the default server.
+            [ -n "$opt_submit_urls" ] || opt_submit_urls=","
             saved_IFS=$IFS
             IFS=","
             for url in $opt_submit_urls
