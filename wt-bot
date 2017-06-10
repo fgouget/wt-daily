@@ -269,9 +269,9 @@ then
             error "you must specify an email address for --winetest"
             usage="2"
         fi
-        if [ -n "$opt_skip_old" -a -z "$opt_submit" ]
+        if [ -z "$opt_submit" -a -n "$opt_skip_old$opt_submit_urls" ]
         then
-            error "--skip-old cannot be used without --submit"
+            error "--skip-old and --submit-urls cannot be used without --submit"
             usage="2"
         fi
         if [ -n "$opt_testexe" -a ! -f "$opt_testexe" ]
