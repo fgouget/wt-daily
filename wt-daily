@@ -462,7 +462,7 @@ trap abort INT TERM EXIT
 otheros_file="$test_root/$name0.otheros"
 
 # Returns either the latest Wine commit as of the last time the tests were run
-# on this other OS, or 'broken' if the OS image could not be restored.
+# on this other OS.
 get_otheros_status()
 {
     base=`basename "$1" .wtimage`
@@ -485,10 +485,7 @@ select_otheros()
         for image in $otheroses
         do
             commitid=`get_otheros_status "$image"`
-            if [ "$commitid" = "broken" ]
-            then
-                echo "'$image' was recorded as broken, skipping it"
-            elif [ "$commitid" = "$latest_commitid" ]
+            if [ "$commitid" = "$latest_commitid" ]
             then
                 echo "tests were run for '$image' already, skipping it"
             elif [ ! -x "$image" ]
@@ -512,10 +509,7 @@ restore_otheros()
     image="$1"
     do_pause
     commitid=`get_otheros_status "$image"`
-    if [ "$commitid" = "broken" ]
-    then
-        echo "'$image' was recorded as broken, skipping it"
-    elif [ "$commitid" = "$latest_commitid" ]
+    if [ "$commitid" = "$latest_commitid" ]
     then
         echo "tests were run for '$image' already, skipping it"
     elif [ ! -x "$image" ]
@@ -526,7 +520,8 @@ restore_otheros()
     then
         return 0
     else
-        dry_run set_otheros_status "broken" "$image"
+        # Don't try again until we have another Wine version
+        dry_run set_otheros_status "$latest_commitid" "$image"
     fi
     return 1
 }
