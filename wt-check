@@ -1,0 +1,308 @@
+#!/usr/bin/perl
+# Copyright (C) 2017 Francois Gouget
+#
+# Checks that the specified reports made it to the WineTest web site.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+use strict;
+use warnings;
+
+my $name0=$0;
+$name0 =~ s+^.*/++;
+
+my $WINETEST_URL = "https://test.winehq.org/data";
+
+
+#
+# Error reporting and logging
+#
+
+sub error(@)
+{
+    print STDERR "$name0:error: ", @_;
+}
+
+my $opt_verbose;
+sub verbose(@)
+{
+    print STDERR @_ if ($opt_verbose);
+}
+
+
+#
+# Downloader
+#
+
+# Uncomment if forcing IPv4 is necessary
+# use IO::Socket::SSL 'inet4';
+
+use HTML::TreeBuilder;
+use LWP::UserAgent;
+use Encode;
+my $ua = LWP::UserAgent->new();
+
+sub fetch_url($)
+{
+    my ($url) = @_;
+
+    my $r;
+    local $SIG{ALRM} = sub { die "timeout" };
+    foreach my $try (1, 2, 3, 4, 5)
+    {
+        eval
+        {
+            alarm(120);
+            $r = $ua->get($url);
+            alarm(0);
+        };
+        last if (defined $r and !$r->is_error);
+        error("try $try: could not fetch '$url': ", $r->status_line, "\n");
+        sleep($try * 20);
+    }
+    exit(1) if (!$r);
+    my $content = decode('utf-8', $r->content);
+    my $tree = new HTML::TreeBuilder;
+    $tree->ignore_unknown(0);
+    if (!$tree->parse($content))
+    {
+        error("cannot parse content of $url\n");
+        exit(1);
+    }
+    $tree->eof;
+    return $tree;
+}
+
+
+#
+# WineTest page parsing
+#
+
+sub get_latest_build($)
+{
+    my ($url) = @_;
+
+    verbose("Downloading $url\n");
+    my $tree = fetch_url($url);
+    my $cell = $tree->look_down('_tag', 'td', 'class', 'build');
+    if (!$cell)
+    {
+        error("$url does not look like a build index page\n");
+        exit(1);
+    }
+    my $a = $cell->look_down('_tag', 'a');
+    return $a->attr('href');
+}
+
+# Removes online reports from the $tags hash
+sub cross_off_reports($$);
+sub cross_off_reports($$)
+{
+    my ($url, $tags) = @_;
+
+    verbose("Downloading $url\n");
+    my $tree = fetch_url($url);
+    my $first_row = $tree->look_down('_tag', 'tr');
+    if (!$first_row)
+    {
+        error("$url does not look like a build/platform index page\n");
+        exit(1);
+    }
+
+    foreach my $a ($first_row->look_down('_tag', 'a'))
+    {
+        my $link = $a->attr('href');
+        if ($link =~ m=^(index_([^/]+)\.html)$=)
+        {
+            cross_off_reports("$url/$1", $tags);
+            return if (!keys %$tags);
+        }
+        elsif ($link =~ m=^([a-z0-9]+_([^/]+))/version\.html$=)
+        {
+            verbose("  found $1\n");
+            delete $tags->{$1};
+            delete $tags->{$2};
+            return if (!keys %$tags);
+        }
+    }
+}
+
+# Removes the commit files for missing reports, thus allowing the tests to be
+# re-run.
+sub clean_commits($$$$)
+{
+    my ($tags, $root, $tagmap, $build) = @_;
+
+    verbose("Cleaning up commit files\n");
+    foreach my $tag (keys %$tags)
+    {
+        my $commitfile;
+        foreach my $key (keys %$tagmap)
+        {
+            if ($tag =~ /\Q$key\E/)
+            {
+                $commitfile = "$root/otheros/$tagmap->{$key}.commit";
+                last;
+            }
+        }
+        if (!defined $commitfile)
+        {
+            my $pattern = $tag;
+            $pattern =~ s/^[a-z0-9]+_//;
+            my @files = <"$root/*/$pattern.commit">;
+            $commitfile = $files[0] if (@files == 1);
+        }
+        if (!defined $commitfile)
+        {
+            my $pattern = $tag;
+            $pattern =~ s/^[a-z0-9]+_//;
+            my @files = <"$root/*/*.$pattern">;
+            $commitfile = $files[0] if (@files == 1);
+        }
+        next if (!defined $commitfile);
+        next if (!-f $commitfile);
+
+        my $commit=`cat "$commitfile"`;
+        chomp $commit;
+        if ($commit ne $build)
+        {
+            verbose("  wrong commitid $commitfile [$commit] != [$build]\n");
+            next;
+        }
+
+        my $mtime = (stat($commitfile))[9];
+        if (time() - $mtime < 60 * 60)
+        {
+            # The website's cron job may not yet have processed the report.
+            verbose("  too recent     $commitfile\n");
+            next;
+        }
+        # Delete the commit file so running wt-daily again will re-run the
+        # test, hopefully with better luck.
+        verbose("  deleting       $commitfile\n");
+        $tags->{$tag} = 0;
+        unlink $commitfile;
+    }
+}
+
+
+#
+# Main
+#
+
+my ($opt_root, $opt_map, $opt_url, $opt_build, $opt_help);
+use Getopt::Long;
+my $ok = GetOptions("root=s"  => \$opt_root,
+                    "map=s"   => \$opt_map,
+                    "url=s"   => \$opt_url,
+                    "build=s" => \$opt_build,
+                    "verbose" => \$opt_verbose,
+                    "help"    => \$opt_help);
+my %tagmap;
+if (!$opt_help and $ok)
+{
+    if (defined $opt_root)
+    {
+        if (!-d $opt_root)
+        {
+            error("'$opt_root' is not a valid root directory\n");
+            $ok = undef;
+        }
+        if (defined $opt_map)
+        {
+            foreach my $m (split /,+/, $opt_map)
+            {
+               if ($m =~ /^([-.0-9a-zA-Z_]+)=([a-zA-Z0-9._-]+)/)
+               {
+                   $tagmap{$1}=$2;
+               }
+               elsif ($m !~ /^ *$/)
+               {
+                   error("'$m' does not look like a valid tag mapping\n");
+                   $ok = undef;
+                   last;
+               }
+            }
+        }
+    }
+    elsif (defined $opt_map)
+    {
+        error("--map can only be used with --root\n");
+        $ok = undef;
+    }
+    $opt_url = $WINETEST_URL if (!defined $opt_url);
+    if (!@ARGV)
+    {
+        error("you must specify which tags to check\n");
+        $ok = undef;
+    }
+}
+if (!$ok)
+{
+    error("try running $name0 --help\n");
+    exit 2;
+}
+if ($opt_help)
+{
+    print "Usage: $name0 [--verbose] [--help] [--dir DIR] [--url URL] [--build BUILD] TAG1...\n";
+
+    print "\n";
+    print "Checks that the specified reports made it to the WineTest web site and\n";
+    print "allows automatically re-running them if not.\n";
+
+    print "\n";
+    print "Options:\n";
+    print "  TAG1...         The report tags to look for. To avoid ambiguity it can be\n";
+    print "                  prefixed with the WineTest's platform id.\n";
+    print "  --root DIR      If set the .commit files of missing tags will be deleted.\n";
+    print "                  This is useful to automatically rerun the tests if the last\n";
+    print "                  run failed to submit its results.\n";
+    print "  --map T1=C1,... A comma-separated list mapping tags to the basename of the\n";
+    print "                  corresponding .commit files. This is needed to automatically\n";
+    print "                  rerun the tests on Windows since one disk image will\n";
+    print "                  typically submit more than one result. A partial tag can be\n";
+    print "                  provided and to avoid ambiguity it can be prefixed with the\n";
+    print "                  WineTest platform id.\n";
+    print "  --url URL       The base URL of the WineTest site to check.\n";
+    print "  --build BUILD   The build id to check. By default the latest build is checked.\n";
+    print "  --verbose       Prints more progress information.\n";
+    print "  --help          Prints this help message.\n";
+    exit 0;
+}
+
+my $tags = {};
+foreach my $tag (@ARGV)
+{
+    $tags->{$tag} = 1;
+}
+
+$opt_build = get_latest_build($opt_url) if (!defined $opt_build);
+
+cross_off_reports("$opt_url/$opt_build", $tags);
+
+clean_commits($tags, $opt_root, \%tagmap, $opt_build);
+
+if (keys %$tags)
+{
+    print "Build: $opt_build\n";
+    print "No report was found on $opt_url for:\n";
+    foreach my $tag (sort keys %$tags)
+    {
+        my $extra = "";
+        $extra = " (will be rerun)" if (!$tags->{$tag});
+        print "  $tag$extra\n";
+    }
+    exit 1;
+}
+
+exit 0;
