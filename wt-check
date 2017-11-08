@@ -159,7 +159,7 @@ sub clean_commits($$$$)
         {
             my $pattern = $tag;
             $pattern =~ s/^[a-z0-9]+_//;
-            my @files = <"$root/*/$pattern.commit">;
+            my @files = <"$root/*/wt-bot-$pattern.commit">;
             $commitfile = $files[0] if (@files == 1);
         }
         if (!defined $commitfile)
