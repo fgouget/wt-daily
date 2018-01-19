@@ -1,0 +1,128 @@
+#!/bin/sh
+# Copyright (C) 2018 Francois Gouget
+#
+# A portable script to compute cryptographic checksums.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+name0=`basename "$0"`
+
+error()
+{
+    echo "$name0:error:" "$@" >&2
+}
+
+
+### Main
+
+opt_type=""
+opt_file=""
+usage=""
+while [ $# -gt 0 ]
+do
+    arg="$1"
+    shift
+    case "$arg" in
+    --sha1|--sha256)
+        if [ -n "$opt_type" ]
+        then
+            error "the checksum type can only be specified once"
+            opt_usage=2
+            break
+        fi
+        opt_type="$arg"
+        ;;
+    --help|-h|-\?)
+        usage="0"
+        ;;
+    *)
+        if [ -n "$opt_file" ]
+        then
+            error "only one filename can be specified"
+            opt_usage=2
+            break
+        fi
+        opt_file="$arg"
+    esac
+done
+
+if [ -z "$usage" ]
+then
+    if [ -z "$opt_type" ]
+    then
+        error "you must specify the type of checksum to compute"
+        usage="2"
+    fi
+    if [ -z "$opt_file" ]
+    then
+        error "you must specify the file to checksum"
+        usage="2"
+    fi
+fi
+
+
+if [ "$usage" = "0" ]
+then
+    echo "Usage: $name0 [--help] (--sha1|--sha256) FILENAME"
+    echo
+
+    echo "Prints the cryptographic checksum of the specified file on stdout."
+    echo
+    
+    echo "Where:"
+    echo "  --sha1         Computes the SHA1 cryptographic checksum."
+    echo "  --sha256       Computes the SHA256 cryptographic checksum."
+    echo "  FILENAME       Is the file to checksum."
+    echo "  --help, -h     Shows this help message."
+    exit 0
+elif [ -n "$usage" ]
+then
+    error "try '$name0 --help' for more information"
+    exit $usage
+fi
+
+
+sha1_wrapper()
+{
+    if which sha1sum >/dev/null 2>&1
+    then
+        sha1sum "$@" | cut -d' ' -f1
+    elif which shasum >/dev/null 2>&1
+    then
+       shasum -a 1 "$@" | cut -d' ' -f1
+    elif which sha1 >/dev/null 2>&1
+    then
+       sha1 "$@" | sed -e 's/^.* = //'
+    fi
+}
+
+sha256_wrapper()
+{
+    if which sha256sum >/dev/null 2>&1
+    then
+        sha256sum "$@" | cut -d' ' -f1
+    elif which shasum >/dev/null 2>&1
+    then
+       shasum -a 256 "$@" | cut -d' ' -f1
+    elif which sha256 >/dev/null 2>&1
+    then
+       sha256 "$@" | sed -e 's/^.* = //'
+    fi
+}
+
+case "$opt_type" in
+    --sha1)   sha1_wrapper "$opt_file" ;;
+    --sha256) sha256_wrapper "$opt_file" ;;
+esac
+
+exit $?
