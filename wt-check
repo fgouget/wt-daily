@@ -18,8 +18,10 @@
 use strict;
 use warnings;
 
-my $name0=$0;
-$name0 =~ s+^.*/++;
+use Cwd;
+use File::Basename;
+my $name0 = basename($0);
+my $dir0 = dirname(Cwd::realpath($0));
 
 my $WINETEST_URL = "https://test.winehq.org/data";
 
@@ -139,59 +141,75 @@ sub cross_off_reports($$)
 
 # Removes the commit files for missing reports, thus allowing the tests to be
 # re-run.
-sub clean_commits($$$$)
+sub clean_commits($$$$$)
 {
-    my ($tags, $root, $tagmap, $build) = @_;
+    my ($tags, $root, $tagmap, $build, $is_latest_build) = @_;
 
     verbose("Cleaning up commit files\n");
     foreach my $tag (keys %$tags)
     {
-        my $commitfile;
+        my $lastrunfile;
         foreach my $key (keys %$tagmap)
         {
             if ($tag =~ /\Q$key\E/)
             {
-                $commitfile = "$root/otheros/$tagmap->{$key}.commit";
+                $lastrunfile = "$root/otheros/$tagmap->{$key}.commit";
                 last;
             }
         }
-        if (!defined $commitfile)
+        if (!defined $lastrunfile)
         {
             my $pattern = $tag;
             $pattern =~ s/^[a-z0-9]+_//;
             my @files = <"$root/*/wt-bot-$pattern.commit">;
-            $commitfile = $files[0] if (@files == 1);
+            $lastrunfile = $files[0] if (@files == 1);
         }
-        if (!defined $commitfile)
+        my $expected;
+        if (defined $lastrunfile)
         {
-            my $pattern = $tag;
-            $pattern =~ s/^[a-z0-9]+_//;
-            my @files = <"$root/*/*.$pattern">;
-            $commitfile = $files[0] if (@files == 1);
+            $expected = $build;
         }
-        next if (!defined $commitfile);
-        next if (!-f $commitfile);
+        else
+        {
+            my $tagglob = $tag;
+            $tagglob =~ s/^[a-z0-9]+_//;
+            my $buildglob = $is_latest_build ? "" : substr("-$build", 13);
+            my @files = <"$root/*/*$buildglob.exe.$tagglob">;
+            if (@files == 1)
+            {
+                my $winetest = $files[0];
+                $winetest =~ s/\.$tagglob//;
+                if (-f $winetest)
+                {
+                    $lastrunfile = $files[0];
+                    $expected = `"$dir0/wt-sum" --sha256 "$winetest"`;
+                    chomp $expected;
+                }
+            }
+        }
+        next if (!defined $lastrunfile);
+        next if (!-f $lastrunfile);
 
-        my $commit=`cat "$commitfile"`;
-        chomp $commit;
-        if ($commit ne $build)
+        my $lastid = `cat "$lastrunfile"`;
+        chomp $lastid;
+        if ($lastid ne $expected)
         {
-            verbose("  wrong commitid $commitfile [$commit] != [$build]\n");
+            verbose("  outdated $lastrunfile [$lastid] != [$expected]\n");
             next;
         }
 
-        my $mtime = (stat($commitfile))[9];
+        my $mtime = (stat($lastrunfile))[9];
         if (time() - $mtime < 60 * 60)
         {
             # The website's cron job may not yet have processed the report.
-            verbose("  too recent     $commitfile\n");
+            verbose("  too recent     $lastrunfile\n");
             next;
         }
         # Delete the commit file so running wt-daily again will re-run the
         # test, hopefully with better luck.
-        verbose("  deleting       $commitfile\n");
+        verbose("  deleting       $lastrunfile\n");
         $tags->{$tag} = 0;
-        unlink $commitfile;
+        unlink $lastrunfile;
     }
 }
 
@@ -286,11 +304,16 @@ foreach my $tag (@ARGV)
     $tags->{$tag} = 1;
 }
 
-$opt_build = get_latest_build($opt_url) if (!defined $opt_build);
+my $is_latest_build;
+if (!defined $opt_build)
+{
+    $opt_build = get_latest_build($opt_url);
+    $is_latest_build = 1;
+}
 
 cross_off_reports("$opt_url/$opt_build", $tags);
 
-clean_commits($tags, $opt_root, \%tagmap, $opt_build);
+clean_commits($tags, $opt_root, \%tagmap, $opt_build, $is_latest_build);
 
 if (keys %$tags)
 {
