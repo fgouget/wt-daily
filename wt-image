@@ -541,7 +541,9 @@ then
     else
         echo_wtimage "$opt_backup" "$meta_sha1" "$opt_description" "$opt_config"
     fi
-    ( dry_run ntfsclone --save-image "$device" --output -; echo $? >"$rcfile" ) |
+    quiet=""
+    [ -t 1 -o -n "$opt_quiet" ] || quiet="-q"
+    ( dry_run ntfsclone $quiet --save-image "$device" --output -; echo $? >"$rcfile" ) |
         $compress compress "$opt_image"
     if [ $? -ne 0 ]
     then
@@ -582,8 +584,10 @@ else
             fi
             exit 3
         fi
+        quiet=""
+        [ -t 1 -o -n "$opt_quiet" ] || quiet="-q"
         ( $compress decompress "$opt_image"; echo $? >"$rcfile" ) |
-            dry_run ntfsclone --restore-image --overwrite "$device" -
+            dry_run ntfsclone $quiet --restore-image --overwrite "$device" -
         if [ $? -ne 0 ]
         then
             error "could not restore '$device'"
