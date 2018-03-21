@@ -384,7 +384,7 @@ then
         error "try '$name0 --help' for more information"
         exit $opt_usage
     fi
-    echo "Usage: $name0 [--dry-run] [--check|--restore|--backup UUID]"
+    echo "Usage: $name0 [--dry-run] [--check|--restore|--grub|--backup UUID]"
     echo "                [--description DESC] [--config CONFIG] IMAGE"
     echo
 
@@ -394,15 +394,21 @@ then
     echo "Where:"
     echo "  IMAGE         The disk image file or .wtimage file to work on. Disk images can"
     echo "                be compressed with gzip, bzip2, xz, or uncompressed."
+    echo "                If a $name0.borg folder is in the same directory as the"
+    echo "                .wtimage file, the disk image will be stored in that borg"
+    echo "                repository."
     echo "  --dry-run     Show what would happen but do nothing."
     echo "  --check       Check if the partition still matches the disk image."
     echo "  --restore     Restores the disk image to the partition."
+    echo "  --grub        Tells grub to reboot to the disk image's partition once."
     echo "  --backup UUID Creates a disk image of the specified partition. The UUID is"
     echo "                the partition's unique identifier."
     echo "  --description DESC A description to store in the .wtimage file for"
     echo "                documentation purposes when backing it up."
     echo "  --config CONFIG Extra configuration information to store in the .wtimage file"
     echo "                for documentation purposes when backing it up."
+    echo "  --quiet       Silences some messages, particularly information about"
+    echo "                the partition."
     echo "  --help, -h    Shows this help message."
     exit 0
 fi
