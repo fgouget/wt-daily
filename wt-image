@@ -141,6 +141,8 @@ borg_wrapper()
     cmd="$1"
     filename="$2"
     _tool=`which borg`
+    BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK=yes
+    export BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK
     case "$cmd" in
         check)
             if [ ! -d "$borg_repo" ]
