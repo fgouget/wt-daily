@@ -511,18 +511,24 @@ restore_otheros()
     commitid=`get_otheros_status "$image"`
     if [ "$commitid" = "$latest_commitid" ]
     then
-        echo "tests were run for '$image' already, skipping it"
-    elif [ ! -x "$image" ]
+        echo "Tests were run for '$image' already, skipping it"
+        return 1
+    fi
+    if [ ! -x "$image" ]
     then
         error "'$image' is not executable, skipping it"
-    elif dry_run time $nice sudo "$image" --restore && \
-         dry_run $nice sudo "$image" --grub
+        return 1
+    fi
+
+    echo "Preparing to run the tests on '$image'..."
+    if dry_run time $nice sudo "$image" --restore && \
+        dry_run $nice sudo "$image" --grub
     then
         return 0
-    else
-        # Don't try again until we have another Wine version
-        dry_run set_otheros_status "$latest_commitid" "$image"
     fi
+
+    # Don't try again until we have another Wine version
+    dry_run set_otheros_status "$latest_commitid" "$image"
     return 1
 }
 
