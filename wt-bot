@@ -756,14 +756,11 @@ then
         # Tell winedbg not to bring up the crash dialog as that causes
         # everything to stop until a timeout kicks in.
         cmd="./wine"
-        if file "./programs/regedit/regedit.exe.so" | grep 'ELF 64' >/dev/null
+        if file "./programs/reg/reg.exe.so" | grep 'ELF 64' >/dev/null
         then
             cmd="./wine64"
         fi
-        $cmd "./programs/regedit/regedit.exe.so" - <<__EOF__
-[HKEY_CURRENT_USER\Software\Wine\WineDbg]
-"ShowCrashDialog"=dword:00000000
-__EOF__
+        $cmd "./programs/reg/reg.exe.so" ADD "HKCU\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0
 
         cmd="./wine"
         [ -n "$opt_testexe" ] || opt_testexe="./programs/winetest/winetest.exe.so"
