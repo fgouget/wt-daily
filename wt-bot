@@ -720,9 +720,12 @@ then
         last=`cat "$logbase.commit" 2>/dev/null`
         [ "$last" != "$latest" ] || opt_winetest=""
     fi
+elif [ -z "$opt_winetest" -a -n "$opt_wineprefix" ]
+then
+    logbase="$name0-wineprefix"
 fi
 
-if [ -n "$opt_winetest" ]
+if [ -n "$opt_wineprefix$opt_winetest" ]
 then
     if [ "$platform" = "Darwin" ]
     then
@@ -777,6 +780,7 @@ then
             ./server/wineserver -w
         fi
 
+        [ -n "$opt_winetest" ] || return
         set -x
         time $cmd $opt_testexe -c -t $opt_winetest -m "$opt_email" \
              -i "$opt_desc" -o "$logbase.report" $opt_exclude
