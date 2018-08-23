@@ -672,7 +672,7 @@ then
 
     # Grab the addons
     arch="x86"
-    if file "$opt_dir/programs/regedit/regedit.exe.so" | grep 'ELF 64' >/dev/null
+    if file "$opt_dir/programs/reg/reg.exe.so" | grep 'ELF 64' >/dev/null
     then
         arch="x86_64"
     fi
