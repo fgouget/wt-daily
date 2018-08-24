@@ -763,7 +763,7 @@ then
         then
             cmd="./wine64"
         fi
-        $cmd "./programs/reg/reg.exe.so" ADD "HKCU\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0
+        $cmd "./programs/reg/reg.exe.so" ADD /f "HKCU\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0
 
         cmd="./wine"
         [ -n "$opt_testexe" ] || opt_testexe="./programs/winetest/winetest.exe.so"
