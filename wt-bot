@@ -725,7 +725,7 @@ then
     logbase="$name0-wineprefix"
 fi
 
-if [ -n "$opt_wineprefix$opt_winetest" ]
+if [ -n "$opt_new_wineprefix$opt_winetest" ]
 then
     if [ "$platform" = "Darwin" ]
     then
