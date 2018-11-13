@@ -301,7 +301,7 @@ then
 
     echo "Update, build and check the Wine source code, and run the tests."
     echo
-    
+
     echo "Where:"
     echo "  --dir DIR         Specifies the Wine build directory. For out-of-tree builds"
     echo "                    the source is supposed to be in '../src'."

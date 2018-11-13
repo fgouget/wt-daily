@@ -105,7 +105,7 @@ then
             exit 1
             ;;
     esac
-            
+
     # Only trigger the shutdown after this script and thus 'Terminal'
     # are done otherwise we'll be stuck waiting for confirmation from
     # the user.

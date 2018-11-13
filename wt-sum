@@ -78,7 +78,7 @@ then
 
     echo "Prints the cryptographic checksum of the specified file on stdout."
     echo
-    
+
     echo "Where:"
     echo "  --sha1         Computes the SHA1 cryptographic checksum."
     echo "  --sha256       Computes the SHA256 cryptographic checksum."
