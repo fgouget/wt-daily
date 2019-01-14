@@ -28,6 +28,15 @@ sub error(@)
     print STDERR "$name0:error: ", @_;
 }
 
+my $verbose;
+sub run($@)
+{
+    print "Running: '", join("' '", @_), "'\n" if ($verbose);
+    my $rc = system(@_);
+    print "rc=$rc\n" if ($verbose);
+    return $rc;
+}
+
 
 #
 # Command line parsing
@@ -42,6 +51,10 @@ while (@ARGV)
     if ($arg =~ /^(?:activate|lock|reset|resume|suspend|status)$/)
     {
         $opt_action = $arg;
+    }
+    elsif ($arg eq "--verbose")
+    {
+        $verbose = 1;
     }
     elsif ($arg eq "-?" or $arg eq "-h" or $arg eq "--help")
     {
@@ -105,7 +118,7 @@ if (defined $usage)
     exit 0;
 }
 
-if (system("type xdg-screensaver >/dev/null 2>&1"))
+if (run("type xdg-screensaver >/dev/null 2>&1"))
 {
     error("xdg-screensaver is missing. Ignoring the '$opt_action' command.\n");
     exit 1;
@@ -114,16 +127,16 @@ if (system("type xdg-screensaver >/dev/null 2>&1"))
 my $rc;
 if ($opt_action =~ /^(?:activate|lock|status)$/)
 {
-    $rc = system("xdg-screensaver", $opt_action);
+    $rc = run("/usr/bin/xdg-screensaver", $opt_action);
 }
 elsif ($opt_action =~ /^(reset|suspend)$/)
 {
     # The goal of suspend is to not have the screensaver run so reset it
     # in case it is already running.
-    $rc = system("xdg-screensaver", "reset");
+    $rc = run("xdg-screensaver", "reset");
     # Somehow the above xdg-screensaver call is not enough but adding the call
     # below fixes it.
-    system("dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call /org/gnome/ScreenSaver org.gnome.ScreenSaver.SetActive boolean:false");
+    run("dbus-send --session --dest=org.gnome.ScreenSaver --type=method_call /org/gnome/ScreenSaver org.gnome.ScreenSaver.SetActive boolean:false");
 }
 
 if ($opt_action eq "suspend")
@@ -137,12 +150,12 @@ if ($opt_action eq "suspend")
 
     # Inhibit the screensaver for as long as the above window exists
     my $hexid = sprintf("0x%x", $gtk_window->window->XWINDOW);
-    $rc = system("xdg-screensaver suspend $hexid");
+    $rc = run("xdg-screensaver suspend $hexid");
     if (!$rc)
     {
         sleep($opt_timeout);
         # We could re-enable the screensaver but simply terminating should be
-        # enough system("xdg-screensaver resume $hexid");
+        # enough run("xdg-screensaver resume $hexid");
     }
 }
 
