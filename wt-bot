@@ -672,7 +672,7 @@ then
 
     # Grab the addons
     arch="x86"
-    if file "$opt_dir/programs/reg/reg.exe.so" | grep 'ELF 64' >/dev/null
+    if file "$opt_dir/programs/reg/reg.exe" | egrep 'PE32[+]' >/dev/null
     then
         arch="x86_64"
     fi
@@ -758,19 +758,7 @@ then
     {
         # Tell winedbg not to bring up the crash dialog as that causes
         # everything to stop until a timeout kicks in.
-        cmd="./wine"
-        if file "./programs/reg/reg.exe.so" | grep 'ELF 64' >/dev/null
-        then
-            cmd="./wine64"
-        fi
-        $cmd "./programs/reg/reg.exe.so" ADD "HKCU\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f
-
-        cmd="./wine"
-        [ -n "$opt_testexe" ] || opt_testexe="./programs/winetest/winetest.exe.so"
-        if file "$opt_testexe" | egrep '(PE32[+]|ELF 64)' >/dev/null
-        then
-            cmd="./wine64"
-        fi
+        ./wine "reg.exe" ADD "HKCU\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f
 
         if [ -n "$opt_new_wineprefix" ]
         then
@@ -778,10 +766,11 @@ then
             #       created *before* starting winetest.exe.
             ./server/wineserver -w
         fi
-
         [ -n "$opt_winetest" ] || return
+
+        [ -n "$opt_testexe" ] || opt_testexe="winetest.exe"
         set -x
-        time $cmd $opt_testexe -c -t $opt_winetest -m "$opt_email" \
+        time ./wine "$opt_testexe" -c -t $opt_winetest -m "$opt_email" \
              -i "$opt_desc" -o "$logbase.report" $opt_exclude
         set +x
         if [ -n "$opt_submit" ]
@@ -797,7 +786,7 @@ then
                 options=""
                 [ -n "$url" ] && options="-S $url"
                 set -x
-                time $cmd $opt_testexe -c -s "$logbase.report" $options
+                time ./wine "$opt_testexe" -c -s "$logbase.report" $options
                 set +x
             done
         fi

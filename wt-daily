@@ -804,7 +804,7 @@ then
                 --wineprefix "$test_root/wineprefix" \
                 --dir "$test_root/wow64" --winetest "$tagwow32" \
                 --desc "$descwow32" --exclude "$excludewow32" \
-                --testexe "$test_root/wow32/programs/winetest/winetest.exe.so"
+                --testexe "$test_root/wow32/programs/winetest/winetest.exe"
     fi
 
     rm -rf "$test_root/wineprefix"
