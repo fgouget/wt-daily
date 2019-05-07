@@ -776,7 +776,6 @@ then
         then
             # FIXME Workaround for bug 41713: Ensure the WINEPREFIX has been
             #       created *before* starting winetest.exe.
-            $cmd ./programs/hostname/hostname.exe.so >/dev/null
             ./server/wineserver -w
         fi
 
