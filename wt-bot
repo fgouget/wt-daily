@@ -73,7 +73,6 @@ opt_update=""
 opt_build=""
 opt_buildtype=""
 opt_buildretry=""
-opt_crosstest=""
 opt_gcc=""
 opt_chroot=""
 opt_spelling=""
@@ -137,9 +136,6 @@ do
             opt_gcc="$1"
             shift
         fi
-        ;;
-    --crosstest)
-        opt_crosstest="1"
         ;;
     --spelling)
         opt_spelling="1"
@@ -226,7 +222,7 @@ done
 
 if [ -z "$usage" ]
 then
-    if [ -z "$opt_update$opt_build$opt_localchecks$opt_crosstest$opt_spelling$opt_winapicheck$opt_new_wineprefix$opt_winetest$opt_extras" ]
+    if [ -z "$opt_update$opt_build$opt_localchecks$opt_spelling$opt_winapicheck$opt_new_wineprefix$opt_winetest$opt_extras" ]
     then
         error "you must specify one or more tasks to perform"
         usage="2"
@@ -291,7 +287,7 @@ fi
 
 if [ "$usage" = "0" ]
 then
-    echo "Usage: $name0 [--dir DIR] [--update] [--crosstest]"
+    echo "Usage: $name0 [--dir DIR] [--update]"
     echo "              [--build [--64|--wow|--pe32|--pe64] [--chroot ROOT] [--gcc GCC]"
     echo "              [--build-retry]] [--wineprefix DIR] [--new-wineprefix]"
     echo "              [--winetest TAG [--email EMAIL] [--desc DESC] [--exclude TESTS]"
@@ -318,8 +314,6 @@ then
     echo "    --chroot ROOT   schroot to ROOT for the build."
     echo "    --gcc GCC       Set \$CC to the specified compiler."
     echo "    --build-retry   Retry the build from a clean tree if it fails."
-    echo "  --crosstest       Make the crosstest target. This only builds the Windows test"
-    echo "                    executables."
     echo "  --wineprefix DIR  Specifies the WINEPREFIX directory to operate on. By default"
     echo "                    this is \$HOME/.wine."
     echo "  --new-wineprefix  Resets the wineprefix."
@@ -524,25 +518,6 @@ then
         errors="1"
     fi
     cd "$opt_dir"
-fi
-
-
-##### --crosstest
-
-if [ -n "$opt_crosstest" ]
-then
-    {
-        "$dir0/wt-make" -k crosstest || "$dir0/wt-make" -j1 crosstest
-    } >"$name0-crosstest.log" 2>&1
-    [ $? -ne 0 ] && failed_compile="1"
-    if [ -n "$failed_compile" ]
-    then
-        echo
-        echo "*****"
-        echo "The compilation failed (see $name0-crosstest.log):"
-        tail "$name0-crosstest.log"
-        errors="1"
-    fi
 fi
 
 run_ext post_build
