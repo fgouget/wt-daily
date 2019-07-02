@@ -114,12 +114,6 @@ do
     --wow)
         opt_buildtype="wow"
         ;;
-    --pe32)
-        opt_buildtype="pe32"
-        ;;
-    --pe64)
-        opt_buildtype="pe64"
-        ;;
     --build-retry)
         opt_buildretry="1"
         ;;
@@ -247,7 +241,7 @@ then
     then
         if [ -n "$opt_buildtype$opt_buildretry$opt_gcc$opt_chroot" ]
         then
-            error "--64, --wow, --pe32, --pe64, --build-retry, --gcc and --chroot  can only be used with --build"
+            error "--64, --wow, --build-retry, --gcc and --chroot  can only be used with --build"
             usage="2"
         fi
     fi
@@ -288,7 +282,7 @@ fi
 if [ "$usage" = "0" ]
 then
     echo "Usage: $name0 [--dir DIR] [--update]"
-    echo "              [--build [--64|--wow|--pe32|--pe64] [--chroot ROOT] [--gcc GCC]"
+    echo "              [--build [--64|--wow] [--chroot ROOT] [--gcc GCC]"
     echo "              [--build-retry]] [--wineprefix DIR] [--new-wineprefix]"
     echo "              [--winetest TAG [--email EMAIL] [--desc DESC] [--exclude TESTS]"
     echo "              [--macdrv] [--testexe PATH] [--skip-old] [--no-submit]"
@@ -309,8 +303,6 @@ then
     echo "                    to the 64 bit out-of-tree directory and the 32 bit one is"
     echo "                    supposed to be in a sibling directory where the trailing"
     echo "                    '64' was replaced with '32'."
-    echo "    --pe32          Cross-build Wine to produce 32 bit Windows executables."
-    echo "    --pe64          Cross-build Wine to produce 64 bit Windows executables."
     echo "    --chroot ROOT   schroot to ROOT for the build."
     echo "    --gcc GCC       Set \$CC to the specified compiler."
     echo "    --build-retry   Retry the build from a clean tree if it fails."
@@ -482,14 +474,6 @@ then
         case "$opt_buildtype" in
             64|wow)
                 config_opts="$config_opts --enable-win64"
-                ;;
-            pe32)
-                unset CC
-                config_opts="$config_opts --host=i686-w64-mingw32 --with-wine-tools=../wine --without-freetype --without-x"
-                ;;
-            pe64)
-                unset CC
-                config_opts="$config_opts --host=x86_64-w64-mingw32 --with-wine-tools=../wine --without-freetype --without-x"
                 ;;
         esac
         if [ "$platform" = "Darwin" ]
