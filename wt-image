@@ -161,7 +161,7 @@ borg_wrapper()
             return 1
             ;;
         compress)
-            dry_run time "$_tool" create -C zlib "$borg_repo::$filename" - "$wtimage_file"
+            dry_run time "$_tool" create -C zstd "$borg_repo::$filename" - "$wtimage_file"
             ;;
         decompress)
             borg_image=`borg list --list-format "{path}{NEWLINE}" "$borg_repo::$filename" 2>/dev/null | egrep "^(stdin|$filename\\.img)$"`
