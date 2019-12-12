@@ -594,7 +594,7 @@ download_addon()
     then
         addon_base="wine-$addon-$version.msi"
     else
-        addon_base="wine_$addon-$version-$arch.msi"
+        addon_base="wine-$addon-$version-$arch.msi"
     fi
     addon_path="$opt_dir/../$addon/$addon_base"
 
