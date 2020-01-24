@@ -561,6 +561,8 @@ fi
 
 ##### --new-wineprefix
 
+BASE_ADDON_URL="https://dl.winehq.org/wine"
+
 verify_addon()
 {
     key="$1"
@@ -583,13 +585,13 @@ verify_addon()
     return 1
 }
 
-download_addon()
+download_msi_addon()
 {
     addon="$1"
-    arch="$2"
+    version="$2"
+    arch="$3"
+    key="$3"
 
-    key=`echo $addon | tr a-z A-Z`
-    version=`sed -e "s/^.*define  *${key}_VERSION *\"\\([^\"]*\\)\"/\\1/" -e t -e d "$src_dir/dlls/appwiz.cpl/addons.c"`
     if [ -z "$arch" ]
     then
         addon_base="wine-$addon-$version.msi"
@@ -606,7 +608,7 @@ download_addon()
     if [ ! -f "$addon_path" ]
     then
         mkdir -p `dirname "$addon_path"`
-        url="http://dl.winehq.org/wine/wine-$addon/$version/$addon_base"
+        url="$BASE_ADDON_URL/wine-$addon/$version/$addon_base"
         $urlget "$url" >"$addon_path"
         if ! verify_addon "$key" "$addon_base" "$addon_path"
         then
@@ -614,6 +616,88 @@ download_addon()
             exit 1
         fi
     fi
+}
+
+download_tar_addon()
+{
+    addon="$1"
+    version="$2"
+    arch="$3"
+
+    case "$addon" in
+    gecko)
+        addon_base="wine-$addon-$version-$arch"
+        addon_path="$opt_dir/../$addon/$addon_base"
+        addon_file="$addon_base"
+        ;;
+    mono)
+        addon_base="wine-$addon-$version"
+        addon_path="$opt_dir/../$addon_base"
+        addon_file="wine-$addon-bin-$version"
+        ;;
+    esac
+    if [ ! -d "$addon_path" -a ! -d "$addon_path-unstripped" ]
+    then
+        echo "Downloading $addon_file"
+        url="$BASE_ADDON_URL/wine-$addon/$version/$addon_file"
+        for suffix in -unstripped.tar.bz2 .tar.bz2 .tar.gz
+        do
+            $urlget "$url$suffix" >"$addon_file$suffix"
+            [ -s "$addon_file$suffix" ] && break
+            rm -f "$addon_file$suffix"
+        done
+        addon_file="$addon_file$suffix"
+        if [ ! -s "$addon_file" ]
+        then
+            rm -f "$addon_file"
+            return 1
+        fi
+
+        parentdir=`dirname "$addon_path"`
+        mkdir -p "$parentdir"
+        case "$addon_file" in
+        *.tar.bz2)
+            bzip2 -c -d "$addon_file" | ( cd "$parentdir" && tar xf - )
+            ;;
+        *.tar.gz)
+            gzip -c -d "$addon_file" | ( cd "$parentdir" && tar xf - )
+            ;;
+        esac
+        if [ $? -ne 0 ]
+        then
+            error "could not extract $addon_file, aborting"
+            exit 1
+        fi
+        case "$addon_file" in
+        *-unstripped.tar.*)
+            addon_path="$addon_path-unstripped"
+            ;;
+        esac
+        if [ ! -d "$addon_path" ]
+        then
+            error "the $addon_file did not contain $addon_base, aborting"
+            exit 1
+        fi
+        rm -f "$addon_file"
+    fi
+    return 0
+}
+
+download_addon()
+{
+    addon="$1"
+    arch="$2"
+
+    key=`echo $addon | tr a-z A-Z`
+    version=`sed -e "s/^.*define  *${key}_VERSION *\"\\([^\"]*\\)\"/\\1/" -e t -e d "$src_dir/dlls/appwiz.cpl/addons.c"`
+    if [ -z "$version" ]
+    then
+        error "could not get the $addon version, aborting"
+        exit 1
+    fi
+
+    download_tar_addon "$addon" "$version" "$arch" ||
+        download_msi_addon "$addon" "$version" "$arch" "$key"
 }
 
 if [ -n "$opt_new_wineprefix" ]
