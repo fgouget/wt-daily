@@ -618,6 +618,16 @@ download_msi_addon()
     fi
 }
 
+decompress()
+{
+    filename="$1"
+    case "$filename" in
+        *.bz2) bzip2 -c -d "$filename" ;;
+        *.gz)  gzip  -c -d "$filename" ;;
+        *.xz)  xz    -c -d "$filename" ;;
+    esac
+}
+
 download_tar_addon()
 {
     addon="$1"
@@ -640,7 +650,7 @@ download_tar_addon()
     then
         echo "Downloading $addon_file"
         url="$BASE_ADDON_URL/wine-$addon/$version/$addon_file"
-        for suffix in -unstripped.tar.bz2 .tar.bz2 .tar.gz
+        for suffix in -unstripped.tar.xz .tar.xz -unstripped.tar.bz2 .tar.bz2 .tar.gz
         do
             $urlget "$url$suffix" >"$addon_file$suffix"
             [ -s "$addon_file$suffix" ] && break
@@ -655,14 +665,7 @@ download_tar_addon()
 
         parentdir=`dirname "$addon_path"`
         mkdir -p "$parentdir"
-        case "$addon_file" in
-        *.tar.bz2)
-            bzip2 -c -d "$addon_file" | ( cd "$parentdir" && tar xf - )
-            ;;
-        *.tar.gz)
-            gzip -c -d "$addon_file" | ( cd "$parentdir" && tar xf - )
-            ;;
-        esac
+        decompress "$addon_file" | ( cd "$parentdir" && tar xf - )
         if [ $? -ne 0 ]
         then
             error "could not extract $addon_file, aborting"
