@@ -646,7 +646,7 @@ download_tar_addon()
         addon_file="wine-$addon-bin-$version"
         ;;
     esac
-    if [ ! -d "$addon_path" -a ! -d "$addon_path-unstripped" ]
+    if [ ! -d "$addon_path" ]
     then
         echo "Downloading $addon_file"
         url="$BASE_ADDON_URL/wine-$addon/$version/$addon_file"
@@ -673,7 +673,7 @@ download_tar_addon()
         fi
         case "$addon_file" in
         *-unstripped.tar.*)
-            addon_path="$addon_path-unstripped"
+            mv "$addon_path-unstripped" "$addon_path"
             ;;
         esac
         if [ ! -d "$addon_path" ]
