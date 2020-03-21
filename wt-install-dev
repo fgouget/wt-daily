@@ -1,0 +1,513 @@
+#!/bin/sh
+# Copyright (C) 2020 Francois Gouget
+#
+# Installs the packages needed for Wine development.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+name0=`basename "$0"`
+
+
+error()
+{
+    echo "$name0:error:" "$@" >&2
+}
+
+warning()
+{
+    echo "$name0:warning:" "$@" >&2
+}
+
+opt_dry_run=""
+
+dry_run()
+{
+    echo "$@"
+    [ -z "$opt_dry_run" ] || return 0
+    "$@"
+    rc=$?
+    [ $rc -ne 0 -a -n "$opt_dry_run" ] && echo " -> rc=$rc" >&2
+    return $rc
+}
+
+
+pkginstall=""
+pkgbroken=""
+pkgmissing=""
+
+
+#####
+#
+# Debian
+#
+#####
+
+#
+# Debian: Package helpers
+#
+
+deb_pkg()
+{
+    echo "Checking $*..."
+    for pkgarch in $*
+    do
+        _pkg=`echo "$pkgarch" | sed -e "s/:.*//g"`
+        if LANG= apt-cache show "$pkgarch" 2>/dev/null | grep -q "Package: $_pkg"
+        then
+            pkginstall="$pkginstall $pkgarch"
+            return
+        fi
+    done
+    pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
+}
+
+deb_multi()
+{
+    ignore=
+    if [ "$1" = "--ignore" ]
+    then
+        ignore=1
+        shift
+    fi
+
+    echo "Checking multiarch $*..."
+    for _pkg in $*
+    do
+        LANG= apt-cache show "$_pkg" 2>/dev/null | grep -q "Multi-Arch: same"
+        if [ $? -eq 0 ]
+        then
+            pkginstall="$pkginstall $_pkg:amd64 $_pkg:i386"
+            return 0
+        elif LANG= apt-cache show "$_pkg" 2>/dev/null | grep -q "Architecture: all"
+        then
+            pkginstall="$pkginstall $_pkg"
+            return 0
+        elif LANG= apt-cache show "$_pkg" 2>/dev/null | grep -q "Package: $_pkg"
+        then
+            pkginstall="$pkginstall $_pkg"
+            [ -z "$ignore" ] && pkgbroken="$pkgbroken $_pkg:i386"
+            return 1
+        fi
+    done
+    [ -z "$ignore" ] && pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
+    return 1
+}
+
+deb_blacklist()
+{
+    canary="$1"
+    version="$2"
+    pkgdev="$3"
+    pkglibs="$4"
+
+    if LANG= apt-cache show "$canary" 2>/dev/null | grep -q "Version: $version"
+    then
+        warning "Bad version for $canary, not using multiarch for $pkgdev"
+        deb_pkg "$pkgdev"
+        deb_pkg "$pkglibs:i386"
+        pkgbroken="$pkgbroken $pkgdev:i386"
+        return 1
+    fi
+    deb_multi "$pkgdev" || deb_multi "$pkglibs"
+    return 0
+}
+
+deb_install()
+{
+    echo -n "Waiting for the dpkg lock"
+    while [ -z "$opt_dry_run" ] && fuser /var/lib/dpkg/lock >/dev/null 2>&1
+    do
+        echo -n "."
+        sleep 1
+    done
+    echo
+    dry_run apt install $pkginstall || exit 1
+    echo
+}
+
+deb_create_so()
+{
+    sodev="$1"
+    solib="$2"
+    [ -n "$solib" ] || solib="$sodev"
+
+    rc=0
+    for arch in x86_64 i386
+    do
+        libdir="/lib/$arch-linux-gnu"
+        usrlibdir="/usr$libdir"
+        if [ ! -f "$usrlibdir/$sodev.so" ]
+        then
+            sover=`cd "$usrlibdir" 2>/dev/null && ls "$solib.so".[0-9]* 2>/dev/null | head -n1`
+            if [ ! -f "$usrlibdir/$sover" ]
+            then
+                # We want the full path in this case
+                sover=`ls "$libdir/$solib.so".[0-9]* 2>/dev/null | head -n1`
+                [ -f "$sover" ] || sover=""
+            fi
+
+            # Use -f because $sodev.so may be a broken symlink
+            if [ -z "$sover" ] || \
+                   ! dry_run ln -s -f "$sover" "$usrlibdir/$sodev.so"
+            then
+                error "Could not create the $arch $sodev.so symbolic link for $pkg"
+                rc=1
+            fi
+        fi
+    done
+    if [ $rc -ne 0 ]
+    then
+        warning "The .so symlink creation will fail if the non-dev package is not installed."
+        [ -n "$opt_dry_run" ] && warning "This is particularly likely with --dry-run."
+    fi
+    return $rc
+}
+
+deb_create_sos()
+{
+    pkg="$1"
+    shift
+
+    success=1
+    for lib in "$@"
+    do
+        deb_create_so "$lib" || success=
+    done
+    if [ -n "$success" ]
+    then
+        pkgbroken=`echo "$pkgbroken" | sed -e "s/$pkg:[a-z0-9]*//"`
+    fi
+}
+
+
+#
+# Debian: Base Wine dependencies
+#
+
+deb_wine()
+{
+    deb_pkg   bison
+    deb_pkg   flex
+    deb_pkg   gcc
+    deb_pkg   gcc-mingw-w64
+    deb_pkg   gcc-multilib
+    deb_pkg   git
+    deb_multi libasound2-dev
+    deb_multi libcapi20-dev
+    deb_multi libdbus-1-dev
+    deb_multi libfaudio-dev
+
+    # The FontConfig development package can only be installed if the FreeType
+    # one supports multiarch
+    deb_pkg   libfreetype6-dev;   deb_multi libfreetype6
+    deb_pkg   libfontconfig1-dev; deb_multi libfontconfig1
+    deb_multi libfreetype6-dev && deb_multi libfontconfig1-dev
+
+    deb_multi libgl1-mesa-dev
+    deb_multi libglu1-mesa-dev
+
+    # The GPhoto2 development package can only be installed if the Exif
+    # one supports multiarch
+    deb_pkg   libgphoto2-dev; deb_multi libgphoto2-6
+    deb_multi --ignore libexif-dev &&  deb_multi libgphoto2-dev
+
+    deb_multi libgsm1-dev
+    # deb_multi  libhal-dev # Libhal is obsolete and usually not available
+    deb_multi libice-dev
+
+    # The GnuTLS development package can only be installed if the idn2 one
+    # one supports multiarch
+    deb_pkg   libgnutls28-dev; deb_multi libgnutls30
+    deb_multi --ignore libidn2-0-dev && deb_multi libgnutls28-dev
+
+    deb_multi libjpeg62-turbo-dev libjpeg-turbo8-dev
+    deb_multi libkrb5-dev
+    deb_multi liblcms2-dev
+    deb_multi libldap2-dev
+    deb_multi libmpg123-dev
+    deb_multi libncurses5-dev
+
+    # The GStreamer development package can only be installed if the liborc
+    # one supports multiarch
+    deb_pkg   libgstreamer-plugins-base1.0-dev
+    deb_multi libgstreamer-plugins-base1.0-0
+    deb_multi --ignore liborc-0.4-dev && deb_multi libgstreamer-plugins-base1.0-dev
+
+    deb_multi libopenal-dev
+    deb_multi libosmesa6-dev
+    deb_multi libpcap0.8-dev ||
+        deb_multi libpcap0.8
+    deb_multi libpng-dev libpng12-dev
+
+    # The PulseAudio development package can only be installed if the Glib2
+    # one supports multiarch
+    deb_pkg libpulse-dev; deb_multi libpulse0
+    deb_multi --ignore libglib2.0-dev && deb_multi libpulse-dev
+
+    # On Debian 9 libsane-dev claims to support multiarch but is broken
+    deb_blacklist libsane-dev 1.0.25-4.1 libsane-dev libsane
+
+    # On Ubuntu 18.04 libsdl2-dev depends on libmirclient-dev which breaks
+    # without warning in a multiarch configuration!
+    deb_blacklist libmirclient-dev 0.31.1-0ubuntu1 libsdl2-dev libsdl2-2.0-0
+
+    deb_multi libsm-dev
+
+    # The CUPS development package can only be installed if the libtiff and
+    # libcupsimage ones support multiarch
+    deb_pkg   libcups2-dev; deb_multi libcups2
+    deb_multi libtiff-dev libtiff5-dev && deb_multi --ignore libcupsimage-dev &&
+        deb_multi libcups2-dev
+
+    deb_multi libudev-dev
+    deb_multi libunwind-dev ||
+        deb_multi libunwind8
+    deb_multi libv4l-dev
+    deb_multi libvkd3d-dev
+    deb_multi libvulkan-dev
+    deb_multi libx11-dev
+    deb_multi libxcb1-dev
+    deb_multi libxcomposite-dev
+    deb_multi libxcursor-dev
+    deb_multi libxi-dev
+    deb_multi libxinerama-dev
+
+    # The XML and XSLT development packages can only be installed if the ICU
+    # one supports multiarch
+    deb_pkg libxml2-dev;  deb_multi libxml2
+    deb_pkg libxslt1-dev; deb_multi libxslt1.1
+    deb_multi --ignore libicu-dev && {
+        deb_multi libxml2-dev
+        deb_multi libxslt1-dev
+    }
+
+    deb_multi  libxrandr-dev
+    deb_multi  libxrender-dev
+    deb_multi  libxxf86vm-dev
+    deb_pkg    make
+    deb_multi  ocl-icd-opencl-dev
+    deb_multi  oss4-dev
+    deb_pkg    prelink
+}
+
+deb_wine_extra()
+{
+    deb_pkg autoconf
+    deb_pkg python3   # For make_vulkan
+    deb_pkg unzip     # For make_unicode
+    deb_pkg wget      # For make_unicode, make_opengl
+}
+
+deb_workarounds()
+{
+    # Work around the missing or broken multiarch support where possible
+
+    # Needed for Debian 10
+    deb_create_sos libsdl2-dev libSDL2-2.0 # Broken up to 2.0.9
+    deb_create_so libSDL2 libSDL2-2.0
+
+    # Needed for Ubuntu 18.04
+    deb_create_sos libcups2-dev libcups
+    deb_create_sos libfontconfig1-dev libfontconfig
+    deb_create_sos libfreetype6-dev libfreetype
+    deb_create_sos libgnutls28-dev libgnutls
+    deb_create_sos libpcap0.8-dev libpcap
+    deb_create_sos libtiff-dev libtiff
+    deb_create_sos libgstreamer-plugins-base1.0-dev libgstaudio-1.0 libgstbase-1.0 libgstreamer-1.0 libgstvideo-1.0
+
+    # Ubuntu 18.04 is missing libxslt/xsltconfig.h
+    xsltconfig="libxslt/xsltconfig.h"
+    if [ -f "/usr/include/x86_64-linux-gnu/$xsltconfig" -a \
+         ! -f "/usr/include/i386-linux-gnu/$xsltconfig" -a \
+         ! -f "/usr/include/$xsltconfig" -a \
+         -d "/usr/include/libxslt" ]
+    then
+        dry_run ln -s "../x86_64-linux-gnu/$xsltconfig" "/usr/include/$xsltconfig"
+    elif [ -f "/usr/include/x86_64-linux-gnu/$xsltconfig" -a \
+           -f "/usr/include/i386-linux-gnu/$xsltconfig" -a \
+           -h "/usr/include/$xsltconfig" ]
+    then
+        echo "Removing the obsolete /usr/include/$xsltconfig symlink (was for libxslt1-dev)"
+        dry_run rm "/usr/include/$xsltconfig"
+    fi
+
+    # Needed for Debian 9
+    deb_create_sos libgphoto2-dev libgphoto2 libgphoto2_port
+    deb_create_sos libjpeg62-turbo-dev libjpeg
+    deb_create_sos libkrb5-dev libcom_err libgssapi_krb5 libk5crypto libkrb5
+    deb_create_sos libpulse-dev libpulse
+    deb_create_sos libsane-dev libsane
+    deb_create_sos libunwind-dev libunwind
+    deb_create_sos libxml2-dev libxml2
+    deb_create_sos libxslt1-dev libxslt
+
+    # The GStreamer issues cannot be worked around
+}
+
+
+#####
+#
+# Command line processing
+#
+#####
+
+wt_parse_cmdline()
+{
+    usage=""
+    while [ $# -gt 0 ]
+    do
+        arg="$1"
+        shift
+        case "$arg" in
+        --wine)       opt_wine="1" ;;
+        --no-wine)    opt_wine="0" ;;
+        --extra)      opt_wine_extra="1" ;;
+        --no-extra)   opt_wine_extra="0" ;;
+        --packages)   opt_packages="1" ;;
+        --workarounds) opt_workarounds="1" ;;
+        --dry-run)    opt_dry_run="1" ;;
+        --help|-h|-?)
+            usage=0
+            break
+            ;;
+        *)
+            error "unknown option '$arg'"
+            usage=2
+            break
+            ;;
+        esac
+    done
+
+    if [ -z "$usage" ]
+    then
+        if [ -z "$opt_wine$opt_wine_extra" ]
+        then
+            opt_wine="1"
+            opt_wine_extra="1"
+        fi
+        if [ -z "$opt_packages$opt_workarounds" ]
+        then
+            opt_packages="1"
+            opt_workarounds="1"
+        fi
+    fi
+
+    if [ "$usage" = "0" ]
+    then
+        echo "Usage: $name0 [--no-wine] [--no-extra] [--packages] [--workarounds] [--dry-run] [--help]"
+        echo
+
+        echo "Installs the packages needed for Wine development."
+        echo "The default options are:"
+        echo "  --wine --extra --packages --workarounds"
+        echo
+
+        echo "Where:"
+        echo "  --no-wine    Don't install the packages needed to compile Wine."
+        echo "  --no-extra   Only install the packages needed to compile Wine, not those"
+        echo "               needed to regenerate part of its source (autoconf, etc)."
+        echo "  --packages   Install the packages."
+        echo "  --workarounds Apply workarounds for packages that don't support multiarch."
+        echo "  --dry-run    Only show which actions would be taken."
+        echo "  --help, -h   Shows this help message."
+        exit 0
+    elif [ -n "$usage" ]
+    then
+        error "try '$name0 --help' for more information"
+        exit $usage
+    fi
+}
+
+
+#####
+#
+# Package installation
+#
+#####
+
+wt_pre_install()
+{
+    if [ -f "/etc/debian_version" ]
+    then
+        if [ `dpkg --print-architecture` != "amd64" ]
+        then
+            error "Expected a 64 bit Debian distribution"
+            exit 1
+        fi
+        if [ -n "$opt_packages" ]
+        then
+            dry_run dpkg --add-architecture i386
+            apt-get update
+            [ "$opt_wine" = "1" ] && deb_wine
+            [ "$opt_wine_extra" = "1" ] && deb_wine_extra
+        fi
+    else
+        error "This Linux distribution is not supported."
+        exit 1
+    fi
+}
+
+wt_install()
+{
+    if [ -f "/etc/debian_version" ]
+    then
+        [ -n "$opt_packages" ] && deb_install
+    fi
+}
+
+wt_post_install()
+{
+    if [ -f "/etc/debian_version" ]
+    then
+        [ -n "$opt_workarounds" ] && deb_workarounds
+    fi
+}
+
+wt_epilogue()
+{
+    pkgbroken=`echo "$pkgbroken" | sed -e 's/^ *//' -e 's/ *$//'`
+    if [ -n "$pkgbroken" ]
+    then
+        echo
+        echo "Could not install the following packages because they do not support multiarch."
+        echo $pkgbroken
+    fi
+
+    pkgmissing=`echo "$pkgmissing" | sed -e 's/^ *//' -e 's/ *$//'`
+    if [ -n "$pkgmissing" ]
+    then
+        echo
+        echo "Could not install the following packages because they are not available."
+        echo $pkgmissing
+    fi
+}
+
+
+#####
+#
+# Main
+#
+#####
+
+if [ -z "$WT_INSTALL_DEV_LIB" ]
+then
+    opt_wine=""
+    opt_wine_extra=""
+    opt_packages=""
+    opt_workarounds=""
+    wt_parse_cmdline "$@"
+    wt_pre_install
+    wt_install
+    wt_post_install
+    wt_epilogue
+fi
