@@ -308,6 +308,12 @@ deb_wine_extra()
     deb_pkg wget      # For make_unicode, make_opengl
 }
 
+deb_wine_tests()
+{
+    deb_pkg ttf-mscorefonts-installer
+    deb_pkg winbind   # For ntlm_auth
+}
+
 deb_workarounds()
 {
     # Work around the missing or broken multiarch support where possible
@@ -373,6 +379,8 @@ wt_parse_cmdline()
         --no-wine)    opt_wine="0" ;;
         --extra)      opt_wine_extra="1" ;;
         --no-extra)   opt_wine_extra="0" ;;
+        --tests)      opt_wine_tests="1" ;;
+        --no-tests)   opt_wine_tests="0" ;;
         --packages)   opt_packages="1" ;;
         --workarounds) opt_workarounds="1" ;;
         --dry-run)    opt_dry_run="1" ;;
@@ -390,7 +398,7 @@ wt_parse_cmdline()
 
     if [ -z "$usage" ]
     then
-        if [ -z "$opt_wine$opt_wine_extra" ]
+        if [ -z "$opt_wine$opt_wine_extra$opt_wine_tests" ]
         then
             opt_wine="1"
             opt_wine_extra="1"
@@ -404,18 +412,19 @@ wt_parse_cmdline()
 
     if [ "$usage" = "0" ]
     then
-        echo "Usage: $name0 [--no-wine] [--no-extra] [--packages] [--workarounds] [--dry-run] [--help]"
+        echo "Usage: $name0 [--no-wine] [--no-extra] [--tests] [--packages] [--workarounds] [--dry-run] [--help]"
         echo
 
         echo "Installs the packages needed for Wine development."
         echo "The default options are:"
-        echo "  --wine --extra --packages --workarounds"
+        echo "  --wine --extra --no-tests --packages --workarounds"
         echo
 
         echo "Where:"
         echo "  --no-wine    Don't install the packages needed to compile Wine."
         echo "  --no-extra   Only install the packages needed to compile Wine, not those"
         echo "               needed to regenerate part of its source (autoconf, etc)."
+        echo "  --tests      Install some packages needed to run the Wine tests."
         echo "  --packages   Install the packages."
         echo "  --workarounds Apply workarounds for packages that don't support multiarch."
         echo "  --dry-run    Only show which actions would be taken."
@@ -450,6 +459,7 @@ wt_pre_install()
             apt-get update
             [ "$opt_wine" = "1" ] && deb_wine
             [ "$opt_wine_extra" = "1" ] && deb_wine_extra
+            [ "$opt_wine_tests" = "1" ] && deb_wine_tests
         fi
     else
         error "This Linux distribution is not supported."
@@ -503,6 +513,7 @@ if [ -z "$WT_INSTALL_DEV_LIB" ]
 then
     opt_wine=""
     opt_wine_extra=""
+    opt_wine_tests=""
     opt_packages=""
     opt_workarounds=""
     wt_parse_cmdline "$@"
