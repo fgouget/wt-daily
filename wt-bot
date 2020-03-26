@@ -637,15 +637,14 @@ download_tar_addon()
     case "$addon" in
     gecko)
         addon_base="wine-$addon-$version-$arch"
-        addon_path="$opt_dir/../$addon/$addon_base"
         addon_file="$addon_base"
         ;;
     mono)
         addon_base="wine-$addon-$version"
-        addon_path="$opt_dir/../$addon_base"
         addon_file="wine-$addon-bin-$version"
         ;;
     esac
+    addon_path="$opt_dir/../$addon/$addon_base"
     if [ ! -d "$addon_path" ]
     then
         echo "Downloading $addon_file"
