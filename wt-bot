@@ -649,7 +649,10 @@ download_tar_addon()
     then
         echo "Downloading $addon_file"
         url="$BASE_ADDON_URL/wine-$addon/$version/$addon_file"
-        for suffix in -unstripped.tar.xz .tar.xz -unstripped.tar.bz2 .tar.bz2 .tar.gz
+        # FIXME Ignore the unstripped binaries for now because the Gecko ones
+        #       don't work :-(
+        #for suffix in -unstripped.tar.xz .tar.xz -unstripped.tar.bz2 .tar.bz2 .tar.gz
+        for suffix in .tar.bz2 .tar.gz
         do
             $urlget "$url$suffix" >"$addon_file$suffix"
             [ -s "$addon_file$suffix" ] && break
