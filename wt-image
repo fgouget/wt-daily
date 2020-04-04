@@ -17,6 +17,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 name0=`basename "$0"`
 
+# Try to set a nicer output for the time command
+time=""
+time true >/dev/null 2>&1 && time="time"
+TIME="Took %E (user %U system %S)"
+export TIME
+
 
 ### Generic helper functions
 
@@ -50,10 +56,10 @@ img_wrapper()
             fi
             ;;
         compress)
-            dry_run time cat >"$filename"
+            dry_run $time cat >"$filename"
             ;;
         decompress)
-            dry_run time cat "$filename"
+            dry_run $time cat "$filename"
             ;;
     esac
 }
@@ -76,10 +82,10 @@ gzip_wrapper()
             fi
             ;;
         compress)
-            dry_run time "$_tool" -c >"$filename"
+            dry_run $time "$_tool" -c >"$filename"
             ;;
         decompress)
-            dry_run time "$_tool" -c -d "$filename"
+            dry_run $time "$_tool" -c -d "$filename"
             ;;
     esac
 }
@@ -102,10 +108,10 @@ bzip2_wrapper()
             fi
             ;;
         compress)
-            dry_run time "$_tool" -c >"$filename"
+            dry_run $time "$_tool" -c >"$filename"
             ;;
         decompress)
-            dry_run time "$_tool" -c -d "$filename"
+            dry_run $time "$_tool" -c -d "$filename"
             ;;
     esac
 }
@@ -128,10 +134,10 @@ xz_wrapper()
             fi
             ;;
         compress)
-            dry_run time "$_tool" -c >"$filename"
+            dry_run $time "$_tool" -c >"$filename"
             ;;
         decompress)
-            dry_run time "$_tool" -c -d "$filename"
+            dry_run $time "$_tool" -c -d "$filename"
             ;;
     esac
 }
@@ -161,11 +167,11 @@ borg_wrapper()
             return 1
             ;;
         compress)
-            dry_run time "$_tool" create -C zstd "$borg_repo::$filename" - "$wtimage_file"
+            dry_run $time "$_tool" create -C zstd "$borg_repo::$filename" - "$wtimage_file"
             ;;
         decompress)
             borg_image=`borg list --list-format "{path}{NEWLINE}" "$borg_repo::$filename" 2>/dev/null | egrep "^(stdin|$filename\\.img)$"`
-            dry_run time "$_tool" extract --stdout "$borg_repo::$filename" "$borg_image"
+            dry_run $time "$_tool" extract --stdout "$borg_repo::$filename" "$borg_image"
             ;;
     esac
 }

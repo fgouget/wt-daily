@@ -25,6 +25,8 @@ dir0=`realpath "$dir0" 2>/dev/null || echo "$dir0"`
 dir0=`dirname "$dir0"`
 
 # Try to set a nicer output for the time command
+time=""
+time true >/dev/null 2>&1 && time="time"
 TIME="Took %E (user %U system %S)"
 export TIME
 
@@ -435,7 +437,7 @@ do_build()
         chroot="schroot -p -c $opt_chroot --"
     fi
     echo "Running: $_config"
-    time $chroot sh -c "$_config"
+    $time $chroot sh -c "$_config"
     _rc=$?
     [ $_rc -ne 0 ] && return $_rc
 
@@ -448,7 +450,7 @@ do_build()
     fi
     echo
     echo "Running: $_build"
-    time $chroot sh -c "$_build"
+    $time $chroot sh -c "$_build"
     _rc=$?
     [ $_rc -eq 0 -o -z "$opt_buildretry" ] && return $_rc
 
@@ -459,11 +461,11 @@ do_build()
     _src=`cd "$src_dir" && pwd`
     [ "$_src" = `pwd` ] && _clean="$_clean; git clean -Xdf"
     echo "Running: $_clean"
-    time $chroot sh -c "$_clean"
+    $time $chroot sh -c "$_clean"
 
     _build="( \"$dir0/wt-make\" || \"$dir0/wt-make\" -j1 )"
     echo "Running: $_config && $_build"
-    time $chroot sh -c "$_config && $_build"
+    $time $chroot sh -c "$_config && $_build"
 }
 
 
@@ -818,7 +820,7 @@ then
 
         [ -n "$opt_testexe" ] || opt_testexe="winetest.exe"
         set -x
-        time ./wine "$opt_testexe" -c -t $opt_winetest -m "$opt_email" \
+        $time ./wine "$opt_testexe" -c -t $opt_winetest -m "$opt_email" \
              -i "$opt_desc" -o "$logbase.report" $opt_exclude
         set +x
         if [ -n "$opt_submit" ]
@@ -834,7 +836,7 @@ then
                 options=""
                 [ -n "$url" ] && options="-S $url"
                 set -x
-                time ./wine "$opt_testexe" -c -s "$logbase.report" $options
+                $time ./wine "$opt_testexe" -c -s "$logbase.report" $options
                 set +x
             done
         fi
