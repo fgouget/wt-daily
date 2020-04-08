@@ -97,6 +97,14 @@ The repository also contains a number or scripts that you will likely
 not have to use yourself but which you may find them useful to further
 automate things. Note that they all have a --help option.
 
+wt-install-dev Installs the packages needed to build the 32 and 64 bit
+               versions of Wine. When possible it applies workarounds if
+               installing both the 32 and 64 bit development packages is
+               impossible. It can also install some extra packages
+               needed by the tests and the wt-daily scripts. See the
+               usage message for the list of Linux distributions it was
+               tested on.
+
 wt-image       Creates, checks, restores or reboots to a disk image.
                See the section below.
 
