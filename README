@@ -48,7 +48,7 @@ of (or in addition to) the regular ones to run the tests using the
 Mac driver instead of (or in addition to) X11. If you can, running the
 X11 tests on a Mac is useful but XQuartz can be temperamental.
 
-Now you can totally stop reading here. But there's a ton more that the 
+Now you can totally stop reading here. But there's a ton more that the
 script can do. Read on if you want to discover more.
 
 
@@ -74,8 +74,8 @@ run the Wine tests and finally either shut the computer down or reboot
 back to Linux depending on the configuration.
 (see the section on that subject below)
 
-This functionality is used on the cw1-hd6800 and xw2-gtx560 CodeWeavers 
-boxes to run the tests on Linux, then Windows 8.1 and then Windows 10. 
+This functionality is used on the cw-hd6800 and cw-gtx560 CodeWeavers
+boxes to run the tests on Linux, then Windows 8.1 and then Windows 10.
 All automatically. wt-daily actually runs every hour and skips the
 tests (and rebooting) if nothing changed since the last run.
 
