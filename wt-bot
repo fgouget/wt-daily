@@ -736,7 +736,7 @@ then
         arch="x86_64"
     fi
     download_addon "gecko" "$arch"
-    download_addon "mono"
+    download_addon "mono" "x86" || download_addon "mono"
 fi
 
 if [ "$platform" = "Darwin" -a -z "$opt_macdrv" ]
