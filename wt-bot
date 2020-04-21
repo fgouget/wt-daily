@@ -645,16 +645,9 @@ download_tar_addon()
     version="$2"
     arch="$3"
 
-    case "$addon" in
-    gecko)
-        addon_base="wine-$addon-$version-$arch"
-        addon_file="$addon_base"
-        ;;
-    mono)
-        addon_base="wine-$addon-$version"
-        addon_file="wine-$addon-bin-$version"
-        ;;
-    esac
+    addon_base="wine-$addon-$version"
+    addon_file="$addon_base-$arch"
+    [ "$addon" = "gecko" ] && addon_base="$addon_file"
     addon_path="$opt_dir/../$addon/$addon_base"
     if [ ! -d "$addon_path" ]
     then
@@ -663,7 +656,7 @@ download_tar_addon()
         # FIXME Ignore the unstripped binaries for now because the Gecko ones
         #       don't work :-(
         #for suffix in -unstripped.tar.xz .tar.xz -unstripped.tar.bz2 .tar.bz2 .tar.gz
-        for suffix in .tar.bz2 .tar.gz
+        for suffix in .tar.xz .tar.bz2 .tar.gz
         do
             $urlget "$url$suffix" >"$addon_file$suffix"
             [ -s "$addon_file$suffix" ] && break
@@ -691,7 +684,7 @@ download_tar_addon()
         esac
         if [ ! -d "$addon_path" ]
         then
-            error "the $addon_file did not contain $addon_base, aborting"
+            error "$addon_file did not contain $addon_base, aborting"
             exit 1
         fi
         rm -f "$addon_file"
