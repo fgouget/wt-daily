@@ -612,6 +612,12 @@ download_msi_addon()
         mkdir -p `dirname "$addon_path"`
         url="$BASE_ADDON_URL/wine-$addon/$version/$addon_base"
         $urlget "$url" >"$addon_path"
+        if [ ! -s "$addon_path" ]
+        then
+            rm -f "$addon_path"
+            error "$addon_path is empty, aborting"
+            exit 1
+        fi
         if ! verify_addon "$key" "$addon_base" "$addon_path"
         then
             error "the $addon_base checksum does not match, aborting"
