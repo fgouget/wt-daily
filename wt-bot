@@ -620,6 +620,9 @@ download_msi_addon()
         fi
         if ! verify_addon "$key" "$addon_base" "$addon_path"
         then
+            # Make sure the broken (malicious?) addon will not be used
+            mv "$addon_path" "$addon_path.bad"
+            rm -f "$addon_path" # in case mv failed
             error "the $addon_base checksum does not match, aborting"
             exit 1
         fi
