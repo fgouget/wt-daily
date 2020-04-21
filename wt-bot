@@ -592,7 +592,7 @@ download_msi_addon()
     addon="$1"
     version="$2"
     arch="$3"
-    key="$3"
+    key="$4"
 
     if [ -z "$arch" ]
     then
