@@ -270,8 +270,7 @@ deb_wine()
         deb_multi libcups2-dev
 
     deb_multi libudev-dev
-    deb_multi libunwind-dev ||
-        deb_multi libunwind8
+    deb_pkg   libunwind-dev
     deb_multi libv4l-dev
     deb_multi libvkd3d-dev
     deb_multi libvulkan-dev
@@ -359,7 +358,6 @@ deb_workarounds()
     deb_create_sos libkrb5-dev libcom_err libgssapi_krb5 libk5crypto libkrb5
     deb_create_sos libpulse-dev libpulse
     deb_create_sos libsane-dev libsane
-    deb_create_sos libunwind-dev libunwind
     deb_create_sos libxml2-dev libxml2
     deb_create_sos libxslt1-dev libxslt
 
