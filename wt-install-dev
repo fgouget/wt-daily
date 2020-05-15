@@ -219,7 +219,7 @@ deb_wine()
     # The GPhoto2 development package can only be installed if the Exif
     # one supports multiarch
     deb_pkg   libgphoto2-dev; deb_multi libgphoto2-6
-    deb_multi --ignore libexif-dev &&  deb_multi libgphoto2-dev
+    deb_multi --ignore libexif-dev && deb_multi libgphoto2-dev
 
     deb_multi libgsm1-dev
     # deb_multi  libhal-dev # Libhal is obsolete and usually not available
