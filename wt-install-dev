@@ -58,6 +58,13 @@ pkgmissing=""
 
 deb_pkg()
 {
+    ignore=
+    if [ "$1" = "--ignore" ]
+    then
+        ignore=1
+        shift
+    fi
+
     echo "Checking $*..."
     for pkgarch in $*
     do
@@ -68,7 +75,7 @@ deb_pkg()
             return
         fi
     done
-    pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
+    [ -z "$ignore" ] && pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
 }
 
 deb_multi()
