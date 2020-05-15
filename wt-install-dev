@@ -298,6 +298,8 @@ deb_wine()
     deb_multi  ocl-icd-opencl-dev
     deb_multi  oss4-dev
     deb_pkg    prelink
+    deb_multi unixodbc-dev ||
+        deb_multi libodbc1
 }
 
 deb_wine_extra()
@@ -361,6 +363,7 @@ deb_workarounds()
     deb_create_sos libsane-dev libsane
     deb_create_sos libxml2-dev libxml2
     deb_create_sos libxslt1-dev libxslt
+    deb_create_sos unixodbc-dev libodbc
 
     # The GStreamer issues cannot be worked around
 }
