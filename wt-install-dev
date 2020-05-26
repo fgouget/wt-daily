@@ -534,34 +534,30 @@ wt_init()
 {
     if [ -f "/etc/debian_version" ]
     then
-        deb_init
-        if [ -n "$opt_packages" ]
-        then
-            [ "$opt_wine" = "1" ] && deb_wine
-            [ "$opt_wine_extra" = "1" ] && deb_wine_extra
-            [ "$opt_wine_tests" = "1" ] && deb_wine_tests
-            [ "$opt_wt_daily" = "1" ] && deb_wt_daily
-        fi
+        wt_platform="deb"
     else
         error "This Linux distribution is not supported."
         exit 1
+    fi
+
+    ${wt_platform}_init
+    if [ -n "$opt_packages" ]
+    then
+        [ "$opt_wine" = "1" ] && ${wt_platform}_wine
+        [ "$opt_wine_extra" = "1" ] && ${wt_platform}_wine_extra
+        [ "$opt_wine_tests" = "1" ] && ${wt_platform}_wine_tests
+        [ "$opt_wt_daily" = "1" ] && ${wt_platform}_wt_daily
     fi
 }
 
 wt_install()
 {
-    if [ -f "/etc/debian_version" ]
-    then
-        [ -n "$opt_packages" ] && deb_install
-    fi
+    [ -n "$opt_packages" ] && ${wt_platform}_install
 }
 
 wt_post_install()
 {
-    if [ -f "/etc/debian_version" ]
-    then
-        [ -n "$opt_workarounds" ] && deb_workarounds
-    fi
+    [ -n "$opt_workarounds" ] && ${wt_platform}_workarounds
 }
 
 wt_epilogue()
