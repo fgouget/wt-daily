@@ -579,6 +579,266 @@ apt_epilogue()
 
 #####
 #
+# Zypper package manager (openSUSE, etc.)
+#
+#####
+
+#
+# zypper: Package helpers
+#
+
+zypper_packages=""
+
+zypper_pkg()
+{
+    local pkgarch
+    if [ -z "$zypper_packages" ]
+    then
+        echo "Grabbing the available package list..."
+        zypper_packages=`zypper packages | cut -d'|' -f3 | sort -u`
+        if [ -z "$zypper_packages" ]
+        then
+            error "'zypper packages' did not return the list of available packages"
+            exit 1
+        fi
+    fi
+
+    echo -n "Checking $*..."
+    for pkgarch in $*
+    do
+        case "$zypper_packages" in
+        *" $pkgarch "*)
+             echo " yes"
+             pkginstall="$pkginstall $pkgarch"
+             return 0
+             ;;
+        esac
+    done
+    echo " no"
+    pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
+    return 1
+}
+
+zypper_multi()
+{
+    local pkg rc
+    for pkg in $*
+    do
+        rc=0
+        zypper_pkg "$pkg" || rc=1
+        zypper_pkg "$pkg-32bit" || rc=1
+        [ $rc -eq 0 ] && return 0
+    done
+    return 1
+}
+
+zypper_install()
+{
+    dry_run zypper install `wt_pretty_list $pkginstall` || exit 1
+    echo
+}
+
+
+#
+# zypper: Wine dependencies
+#
+
+zypper_init()
+{
+    if [ `arch` != "x86_64" ]
+    then
+        error "Expected a 64-bit openSUSE distribution"
+        exit 1
+    fi
+    wt_libdirs="/lib /lib64"
+}
+
+zypper_wine()
+{
+    # Tools
+    zypper_pkg   bison
+    zypper_pkg   flex
+    zypper_multi gcc
+    zypper_pkg   git
+    zypper_pkg   make
+    zypper_pkg   prelink
+
+    # Libraries
+    zypper_multi alsa-devel
+    zypper_multi capi4linux-devel
+    zypper_multi cups-devel
+    zypper_multi dbus-1-devel
+    zypper_multi FAudio-devel
+    zypper_multi fontconfig-devel
+    zypper_multi fontconfig # Missing dependency in -devel-32bit
+
+    zypper_multi freetype2-devel
+    zypper_multi glibc-devel
+    zypper_multi glu-devel
+
+    # Installing the 32-bit glib2-devel allows working around
+    # the missing gstreamer-devel-32bit package.
+    zypper_multi gstreamer-devel || zypper_multi glib2-devel
+    zypper_multi gstreamer-plugins-base-devel
+
+    zypper_multi krb5-devel
+    zypper_multi libcom_err-devel
+    zypper_multi libexif-devel
+    zypper_multi libgnutls-devel
+
+    zypper_multi libgphoto2-devel
+    zypper_multi libgphoto2-6 # Missing dependency in -devel-32bit
+
+    zypper_multi libgsm-devel
+    zypper_multi libjpeg8-devel
+    zypper_multi liblcms2-devel
+
+    zypper_multi libnetapi-devel
+    zypper_multi libnetapi0 # Workaround the missing -devel-32bit package
+
+    zypper_multi libOSMesa-devel
+    zypper_multi libpcap-devel
+    zypper_multi libpng16-compat-devel
+
+    zypper_multi libpulse-devel
+    zypper_multi libpulse0 # Missing dependency in -devel-32bit
+
+    zypper_multi libSDL2-devel
+    zypper_multi libtiff-devel
+
+    zypper_pkg   libunwind-devel # Wine only needs the 64-bit library
+
+    zypper_multi libudev-devel
+    zypper_multi libusb-1_0-devel
+
+    zypper_multi libv4l-devel
+    zypper_multi libv4l2-0 # Missing dependency in -devel-32bit
+
+    zypper_multi libX11-devel
+    zypper_multi libXcomposite-devel
+    zypper_multi libXcursor-devel
+    zypper_multi libXext-devel
+    zypper_multi libXfixes-devel
+    zypper_multi libXi-devel
+    zypper_multi libXinerama-devel
+    zypper_multi libXxf86vm-devel
+    zypper_multi libxml2-devel
+    zypper_multi libXrandr-devel
+    zypper_multi libXrender-devel
+    zypper_multi libxslt-devel
+
+    zypper_multi Mesa-libGL-devel
+    zypper_multi Mesa-libGL1 # Workaround for the missing -devel-32bit package
+
+    zypper_multi mpg123-devel
+    zypper_multi ncurses-devel
+
+    zypper_pkg   opencl-headers
+    zypper_multi ocl-icd-devel
+    zypper_multi libOpenCL1 # For the epilogue diagnostic
+
+    zypper_multi openal-soft-devel
+    zypper_multi libopenal1 # Missing dependency in -devel-32bit
+
+    zypper_multi openldap2-devel
+
+    zypper_multi sane-backends-devel
+    zypper_multi sane-backends # Missing dependency in -devel-32bit
+
+    zypper_multi unixODBC-devel
+    zypper_multi unixODBC
+
+    zypper_multi vkd3d-devel
+    zypper_multi vulkan-devel
+    zypper_multi libvulkan1 # Missing dependency in -devel-32bit
+
+    zypper_multi zlib-devel
+}
+
+zypper_wine_extra()
+{
+    zypper_pkg autoconf
+    zypper_pkg python3   # For make_vulkan
+    zypper_pkg unzip     # For make_unicode
+    zypper_pkg wget      # For make_unicode, make_opengl
+}
+
+zypper_wine_tests()
+{
+    zypper_pkg fetchmsttfonts
+    zypper_pkg samba-winbind   # For ntlm_auth
+}
+
+zypper_wt_daily()
+{
+    zypper_pkg ntfs-3g
+    zypper_pkg time
+}
+
+zypper_workarounds()
+{
+    # Work around the missing 32-bit development packages where possible
+
+    # Needed for openSUSE Leap 15.1
+    wt_create_sos gstreamer-devel-32bit libgstbase-1.0 libgstreamer-1.0
+    wt_create_sos libnetapi-devel-32bit libnetapi
+    wt_create_sos Mesa-libGL-devel-32bit libGL
+}
+
+zypper_epilogue()
+{
+    if wt_explain_bad_pkg "FAudio-devel"
+    then
+        echo "* FAudio-devel is only available on openSUSE Tumbleweed."
+        echo "  https://build.opensuse.org/package/show/openSUSE%3AFactory/FAudio"
+        echo
+    fi
+    if wt_explain_bad_pkg "gstreamer-devel-32bit"
+    then
+        echo "* GStreamer has different header files for 32- and 64-bit. Unfortunately"
+        echo "  gstreamer-devel-32bit is missing which means there is no easy workaround."
+        echo "  But you can check these two pages for more information on how to manually"
+        echo "  overcome this hurdle:"
+        echo "  https://bugzilla.opensuse.org/show_bug.cgi?id=973217"
+        echo "  https://wiki.winehq.org/OpenSUSE#Build_Tools_and_Dependencies"
+        echo
+    fi
+    if [ -n "$opt_packages" ]
+    then
+        echo "* HAL and OSS4 are known not to be available but are obsolete anyway."
+        echo
+
+        echo "* The MinGW compiler is not available and there is no clear workaround."
+        echo
+    fi
+    if wt_explain_bad_pkg "ocl-icd-devel-32bit"
+    then
+        if wt_explain_bad_pkg "libOpenCL1-32bit"
+        then
+            echo "* Both ocl-icd-devel-32bit and libOpenCL1-32bit are missing so there is no"
+            echo "  OpenCL 32-bit support at all."
+            echo
+        else
+            echo "* Update the script to work around the missing development package."
+            echo
+        fi
+    fi
+    if wt_explain_bad_pkg "prelink"
+    then
+        echo "* It may be possible to use the RHEL prelink package."
+        echo "  https://software.opensuse.org/package/prelink"
+        echo
+    fi
+    if wt_explain_bad_pkg "vkd3d-devel"
+    then
+        echo "* vkd3d is only available on openSUSE Tumbleweed."
+        echo
+    fi
+}
+
+
+#####
+#
 # Command line processing
 #
 #####
@@ -646,6 +906,7 @@ wt_parse_cmdline()
         echo "  --wine --extra --no-tests --no-wt-daily --packages --workarounds"
         echo "Tested on:"
         echo "  Debian 9 & 10, Linux Mint 19.03, Ubuntu 18.04 & 19.10."
+        echo "  openSUSE Leap 15.1."
         echo
 
         echo "Where:"
@@ -680,6 +941,9 @@ wt_init()
     if [ -x "/usr/bin/apt-cache" -a -x "/usr/bin/apt-get" ]
     then
         wt_platform="apt"
+    elif [ -x "/usr/bin/zypper" ]
+    then
+        wt_platform="zypper"
     else
         error "This Linux distribution is not supported."
         exit 1
