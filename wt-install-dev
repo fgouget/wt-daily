@@ -230,7 +230,6 @@ deb_wine()
 
     deb_multi libgsm1-dev
     # deb_multi  libhal-dev # Libhal is obsolete and usually not available
-    deb_multi libice-dev
 
     # The GnuTLS development package can only be installed if the idn2 one
     # one supports multiarch
@@ -267,8 +266,6 @@ deb_wine()
     # On Ubuntu 18.04 libsdl2-dev depends on libmirclient-dev which breaks
     # without warning in a multiarch configuration!
     deb_blacklist libmirclient-dev 0.31.1-0ubuntu1 libsdl2-dev libsdl2-2.0-0
-
-    deb_multi libsm-dev
 
     # The CUPS development package can only be installed if the libtiff and
     # libcupsimage ones support multiarch
