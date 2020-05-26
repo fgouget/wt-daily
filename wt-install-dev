@@ -67,6 +67,15 @@ wt_pretty_list()
 wt_libdirs=""
 wt_create_so_warn=1
 
+# wt_create_so <sodev> <solib>
+#
+# Creates the <sodev>.so symlink pointing to the <solib>.so.<ver> library.
+# If <solib> is omitted it is assumed to be identical to <sodev>.
+# wt_create_so() also handles cases where the library is in /lib* rather than
+# /usr/lib*.
+#
+# Returns 0 if the symlink was already present, 1 if it was successfully
+# created, 2 if it could not be created.
 wt_create_so()
 {
     local libdir rc sover usrlibdir
@@ -117,6 +126,11 @@ wt_create_so()
     return $rc
 }
 
+# wt_create_sos <pkgdev> <sodev1> ...
+#
+# Create the development library symlinks in the <sodev1> ... list using
+# wt_create_so(). If they all succeeded, remove <pkgdev> from the broken and
+# missing packages lists.
 wt_create_sos()
 {
     local lib success
@@ -151,6 +165,13 @@ wt_create_sos()
 # Debian: Package helpers
 #
 
+# deb_pkg [--ignore] <pkg1> ...
+#
+# If <pkg1> exists, schedule it for installation and return success.
+# Otherwise try again with the next package in the list.
+#
+# If none of the packages exist and --ignore was not specified, add them all
+# to the missing packages list and return failure.
 deb_pkg()
 {
     local pkg pkgarch
@@ -168,12 +189,25 @@ deb_pkg()
         if LANG= apt-cache show "$pkgarch" 2>/dev/null | grep -q "Package: $pkg"
         then
             pkginstall="$pkginstall $pkgarch"
-            return
+            return 0
         fi
     done
     [ -z "$ignore" ] && pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
+    return 1
 }
 
+# deb_multi [--ignore] <pkg1> ...
+#
+# If <pkg1> exists:
+# - If it supports multiarch schedule the installation of both 32- and 64-bit
+#   versions and return success.
+# - If it is architecture neutral schedule installation and return success.
+# - Otherwise schedule installation of the native package, mark the 32-bit
+#   version as broken and return failure.
+#
+# If <pkg1> does not exist, try again with the next package in the list.
+# If none of the packages exists and --ignore was not specified, add them all
+# to the missing packages list and return failure.
 deb_multi()
 {
     local pkg
@@ -207,6 +241,15 @@ deb_multi()
     return 1
 }
 
+# deb_blacklist <canary> <version> <pkgdev> <pkglibs>
+#
+# This is meant to deal with cases where multiarch support in <pkgdev> is
+# broken by the <canary> package in a hard to detect way.
+#
+# Checks the version of the <canary> package and if it matches <version>
+# installs the native <pkgdev> package and the 32-bit <pkglibs> package and
+# returns failure.
+# Otherwise invokes deb_multi() on <pkgdev> || <pkglibs> and returns success.
 deb_blacklist()
 {
     local canary="$1"
