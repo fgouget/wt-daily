@@ -228,13 +228,18 @@ deb_blacklist()
 
 deb_install()
 {
-    echo -n "Waiting for the dpkg lock"
-    while [ -z "$opt_dry_run" ] && fuser /var/lib/dpkg/lock >/dev/null 2>&1
-    do
-        echo -n "."
-        sleep 1
-    done
-    echo
+    if [ -z "$opt_dry_run" ]
+    then
+        echo -n "Waiting for the dpkg lock"
+        while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ||
+              fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ||
+              fuser /var/run/unattended-upgrades.lock >/dev/null 2>&1
+        do
+            echo -n "."
+            sleep 1
+        done
+        echo " done"
+    fi
     dry_run apt install `wt_pretty_list "$pkginstall"` || exit 1
     echo
 }
