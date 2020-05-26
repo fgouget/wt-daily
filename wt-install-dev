@@ -142,6 +142,8 @@ deb_install()
     echo
 }
 
+deb_create_so_warn=1
+
 deb_create_so()
 {
     sodev="$1"
@@ -172,8 +174,9 @@ deb_create_so()
             fi
         fi
     done
-    if [ $rc -ne 0 ]
+    if [ $rc -ne 0 -a -n "$deb_create_so_warn" ]
     then
+        deb_create_so_warn=
         warning "The .so symlink creation will fail if the non-dev package is not installed."
         [ -n "$opt_dry_run" ] && warning "This is particularly likely with --dry-run."
     fi
