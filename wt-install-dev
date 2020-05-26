@@ -302,6 +302,16 @@ deb_wine()
     deb_multi  ocl-icd-opencl-dev
     deb_multi  oss4-dev
     deb_pkg    prelink
+
+    # For libnetapi
+    if LANG= apt-cache depends samba-libs:i386 | egrep -q 'Depends: python3?-talloc:i386'
+    then
+        deb_pkg samba-dev
+        pkgbroken="$pkgbroken samba-dev:i386"
+    else
+        deb_multi samba-dev
+    fi
+
     deb_multi unixodbc-dev ||
         deb_multi libodbc1
 }
