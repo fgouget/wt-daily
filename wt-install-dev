@@ -204,6 +204,20 @@ deb_create_sos()
 # Debian: Base Wine dependencies
 #
 
+deb_init()
+{
+    if [ `dpkg --print-architecture` != "amd64" ]
+    then
+        error "Expected a 64-bit Debian distribution"
+        exit 1
+    fi
+    if [ -n "$opt_packages" ]
+    then
+        dry_run dpkg --add-architecture i386
+        dry_run apt-get update
+    fi
+}
+
 deb_wine()
 {
     deb_pkg   bison
@@ -484,19 +498,13 @@ wt_parse_cmdline()
 #
 #####
 
-wt_pre_install()
+wt_init()
 {
     if [ -f "/etc/debian_version" ]
     then
-        if [ `dpkg --print-architecture` != "amd64" ]
-        then
-            error "Expected a 64 bit Debian distribution"
-            exit 1
-        fi
+        deb_init
         if [ -n "$opt_packages" ]
         then
-            dry_run dpkg --add-architecture i386
-            dry_run apt-get update
             [ "$opt_wine" = "1" ] && deb_wine
             [ "$opt_wine_extra" = "1" ] && deb_wine_extra
             [ "$opt_wine_tests" = "1" ] && deb_wine_tests
@@ -559,7 +567,7 @@ then
     opt_packages=""
     opt_workarounds=""
     wt_parse_cmdline "$@"
-    wt_pre_install
+    wt_init
     wt_install
     wt_post_install
     wt_epilogue
