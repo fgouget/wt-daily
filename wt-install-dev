@@ -274,7 +274,7 @@ deb_wine()
         deb_multi libcups2-dev
 
     deb_multi libudev-dev
-    deb_pkg   libunwind-dev
+    deb_pkg   libunwind-dev # Wine only needs the 64-bit library
     deb_multi libusb-1.0-0-dev
     deb_multi libv4l-dev
     deb_multi libvkd3d-dev
