@@ -51,6 +51,13 @@ dry_run()
 pkginstall=""
 pkgbroken=""
 pkgmissing=""
+pkgworkaround=""
+
+wt_get_bad_pkgs()
+{
+    local pkg="$1"
+    echo "$pkgbroken $pkgmissing" | tr ' ' '\n' | sort -u | egrep "^$pkg" | tr '\n' ' '
+}
 
 wt_remove_bad_pkg()
 {
@@ -161,6 +168,7 @@ wt_create_sos()
     done
     if [ "$fixed" = "1" ]
     then
+        pkgworkaround="$pkgworkaround "`wt_get_bad_pkgs "$pkg"`
         wt_remove_bad_pkg "$pkg"
     fi
 }
@@ -701,6 +709,15 @@ wt_epilogue()
 {
     echo
     ${wt_platform}_epilogue
+
+    pkgworkaround=`wt_pretty_list "$pkgworkaround"`
+    if [ -n "$pkgworkaround" ]
+    then
+        echo "* Workarounds where successully applied for the following broken or missing"
+        echo "  packages."
+        echo "  $pkgworkaround"
+        echo
+    fi
 
     pkgbroken=`wt_pretty_list "$pkgbroken"`
     if [ -n "$pkgbroken" ]
