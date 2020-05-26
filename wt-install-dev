@@ -52,6 +52,17 @@ pkginstall=""
 pkgbroken=""
 pkgmissing=""
 
+wt_remove_bad_pkg()
+{
+    local pkg="$1"
+    pkgbroken=`echo "$pkgbroken " | sed -e "s/ $pkg[^ ]*/ /g"`
+    pkgmissing=`echo "$pkgmissing " | sed -e "s/ $pkg[^ ]*/ /g"`
+}
+
+wt_pretty_list()
+{
+    echo "$@" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed -e 's/^ //' -e 's/ $//'
+}
 
 wt_libdirs=""
 wt_create_so_warn=1
@@ -125,7 +136,7 @@ wt_create_sos()
     done
     if [ "$fixed" = "1" ]
     then
-        pkgbroken=`echo "$pkgbroken" | sed -e "s/$pkg:[a-z0-9]*//"`
+        wt_remove_bad_pkg "$pkg"
     fi
 }
 
@@ -562,7 +573,7 @@ wt_post_install()
 
 wt_epilogue()
 {
-    pkgbroken=`echo "$pkgbroken" | sed -e 's/^ *//' -e 's/ *$//'`
+    pkgbroken=`wt_pretty_list "$pkgbroken"`
     if [ -n "$pkgbroken" ]
     then
         echo
@@ -570,7 +581,7 @@ wt_epilogue()
         echo $pkgbroken
     fi
 
-    pkgmissing=`echo "$pkgmissing" | sed -e 's/^ *//' -e 's/ *$//'`
+    pkgmissing=`wt_pretty_list "$pkgmissing"`
     if [ -n "$pkgmissing" ]
     then
         echo
