@@ -59,6 +59,17 @@ wt_remove_bad_pkg()
     pkgmissing=`echo "$pkgmissing " | sed -e "s/ $pkg[^ ]*/ /g"`
 }
 
+wt_explain_bad_pkg()
+{
+    local pkg="$1"
+    if echo " $pkgmissing $pkgbroken " | grep -q " $pkg "
+    then
+        wt_remove_bad_pkg "$pkg"
+        return 0
+    fi
+    return 1
+}
+
 wt_pretty_list()
 {
     echo "$@" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed -e 's/^ //' -e 's/ $//'
@@ -510,8 +521,51 @@ deb_workarounds()
     wt_create_sos libxml2-dev libxml2
     wt_create_sos libxslt1-dev libxslt
     wt_create_sos unixodbc-dev libodbc
+}
 
-    # The GStreamer issues cannot be worked around
+deb_epilogue()
+{
+    if wt_explain_bad_pkg "faudio-dev"
+    then
+        echo "* FAudio is only available on distributions derived from Debian 11+."
+        echo
+    fi
+    if wt_explain_bad_pkg "libgstreamer-plugins-base1.0-dev"
+    then
+        echo "* GStreamer has different header files for 32- and 64-bit. Unfortunately"
+        echo "  libgstreamer-plugins-base1.0-dev:i386 cannot be installed because some of its"
+        echo "  dependencies do not support multiarch. But this issue has been fixed in"
+        echo "  Debian 10 which may provide a viable workaround."
+        echo
+    fi
+    if [ -n "$opt_packages" ]
+    then
+        echo "* HAL is known not to be available but is obsolete anyway."
+        echo
+    fi
+    if wt_explain_bad_pkg "ttf-mscorefonts-installer"
+    then
+        echo "* ttf-mscorefonts-installer is in the contrib section of the repository. You"
+        echo "  may need to update /etc/apt/sources.list (man sources.list)."
+        echo
+    fi
+    if wt_explain_bad_pkg "oss4-dev"
+    then
+        echo "* OSS4 is no longer available in Debian 11 but is obsolete anyway."
+        echo
+    fi
+    if wt_explain_bad_pkg "samba-dev:i386"
+    then
+        echo "* samba-dev ostensibly supports multiarch but the 32-bit version depends"
+        echo "  on python:i386 through python-talloc and samba-libs. Similarly the 64-bit"
+        echo "  version depends on python:amd64 thus breaking multiarch support."
+        echo
+    fi
+    if wt_explain_bad_pkg "vkd3d-dev"
+    then
+        echo "* vkd3d is only available on on distributions derived from Debian 10+."
+        echo
+    fi
 }
 
 
@@ -645,20 +699,24 @@ wt_post_install()
 
 wt_epilogue()
 {
+    echo
+    ${wt_platform}_epilogue
+
     pkgbroken=`wt_pretty_list "$pkgbroken"`
     if [ -n "$pkgbroken" ]
     then
+        echo "* Could not install the following packages because they do not support"
+        echo "  multiarch."
+        echo "  $pkgbroken"
         echo
-        echo "Could not install the following packages because they do not support multiarch."
-        echo $pkgbroken
     fi
 
     pkgmissing=`wt_pretty_list "$pkgmissing"`
     if [ -n "$pkgmissing" ]
     then
+        echo "* Could not install the following packages because they are not available."
+        echo "  $pkgmissing"
         echo
-        echo "Could not install the following packages because they are not available."
-        echo $pkgmissing
     fi
 }
 
