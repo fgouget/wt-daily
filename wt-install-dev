@@ -82,19 +82,25 @@ wt_create_so()
                 [ -f "$sover" ] || sover=""
             fi
 
-            # Use -f because $sodev.so may be a broken symlink
-            if [ -z "$sover" ] || \
-                   ! dry_run ln -s -f "$sover" "$usrlibdir/$sodev.so"
+            if [ -z "$sover" ]
             then
-                error "Could not create the ...$libdir/$sodev.so symbolic link for $pkg"
+                error "Could not find the ...$libdir/$sodev.so symlink target"
+                rc=2
+            # Use -f because $sodev.so may be a broken symlink
+            elif ! dry_run ln -s -f "$sover" "$usrlibdir/$sodev.so"
+            then
+                error "Could not create the ...$libdir/$sodev.so symlink"
+                rc=2
+            elif [ $rc -eq 0 ]
+            then
                 rc=1
             fi
         fi
     done
-    if [ $rc -ne 0 -a -n "$wt_create_so_warn" ]
+    if [ $rc -eq 2 -a -n "$wt_create_so_warn" ]
     then
         wt_create_so_warn=
-        warning "The .so symlink creation will fail if the non-dev package is not installed."
+        warning "The symlink creation will fail if the non-dev package is not installed."
         [ -n "$opt_dry_run" ] && warning "This is particularly likely with --dry-run."
     fi
     return $rc
@@ -106,12 +112,18 @@ wt_create_sos()
     local pkg="$1"
     shift
 
-    success=1
+    fixed=""
     for lib in "$@"
     do
-        wt_create_so "$lib" || success=
+        wt_create_so "$lib"
+        # Only mark a package as fixed if no error occurred and at least one
+        # symlink was provided (if no symlink was provided the package is
+        # presumably bad for other reasons).
+        rc=$?
+        [ $rc -eq 2 ] && fixed=0
+        [ $rc -eq 1 -a -z "$fixed" ] && fixed=1
     done
-    if [ -n "$success" ]
+    if [ "$fixed" = "1" ]
     then
         pkgbroken=`echo "$pkgbroken" | sed -e "s/$pkg:[a-z0-9]*//"`
     fi
