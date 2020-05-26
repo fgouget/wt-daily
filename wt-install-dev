@@ -441,7 +441,7 @@ wt_parse_cmdline()
         echo "Usage: $name0 [--no-wine] [--no-extra] [--tests] [--wt-daily] [--packages] [--workarounds] [--dry-run] [--help]"
         echo
 
-        echo "Installs the packages needed to build the 32 and 64 bit versions of Wine. When possible applies workarounds if installing both the 32 and 64 bit development packages is impossible. Can also install some extra packages needed by the tests and the wt-daily scripts."
+        echo "Installs the packages needed to build the 32- and 64-bit versions of Wine. When possible applies workarounds if installing both the 32- and 64-bit development packages is impossible. Can also install some extra packages needed by the tests and the wt-daily scripts."
         echo
         echo "Default options:"
         echo "  --wine --extra --no-tests --no-wt-daily --packages --workarounds"
@@ -457,7 +457,7 @@ wt_parse_cmdline()
         echo "  --wt-daily   Install the packages needed for the wt-daily scripts."
         echo "  --packages   Install the packages."
         echo "  --workarounds Apply workarounds for packages that don't support multiarch so"
-        echo "               that both the 32 and 64 bit versions of Wine can be built."
+        echo "               that both the 32- and 64-bit versions of Wine can be built."
         echo "  --dry-run    Only show which actions would be taken."
         echo "  --help, -h   Shows this help message."
         exit 0
