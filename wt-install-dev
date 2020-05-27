@@ -235,7 +235,7 @@ deb_install()
         sleep 1
     done
     echo
-    dry_run apt install $pkginstall || exit 1
+    dry_run apt install `wt_pretty_list "$pkginstall"` || exit 1
     echo
 }
 
