@@ -406,6 +406,11 @@ wt_parse_cmdline()
         --no-tests)   opt_wine_tests="0" ;;
         --wt-daily)   opt_wt_daily="1" ;;
         --no-wt-daily) opt_wt_daily="0" ;;
+        --all)        opt_wine="1"
+                      opt_wine_extra="1"
+                      opt_wine_tests="1"
+                      opt_wt_daily="1"
+                      ;;
         --packages)   opt_packages="1" ;;
         --workarounds) opt_workarounds="1" ;;
         --dry-run)    opt_dry_run="1" ;;
@@ -455,6 +460,7 @@ wt_parse_cmdline()
         echo "               needed to regenerate part of its source (autoconf, etc)."
         echo "  --tests      Install some packages needed to run the Wine tests."
         echo "  --wt-daily   Install the packages needed for the wt-daily scripts."
+        echo "  --all        Same as --wine --extra --tests --wt-daily."
         echo "  --packages   Install the packages."
         echo "  --workarounds Apply workarounds for packages that don't support multiarch so"
         echo "               that both the 32- and 64-bit versions of Wine can be built."
