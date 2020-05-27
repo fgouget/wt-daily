@@ -184,12 +184,12 @@ wt_create_sos()
 # Debian: Package helpers
 #
 
-# deb_check <action> <pkg> <grep-args>
+# apt_check <action> <pkg> <grep-args>
 #
 # Checks that the information about <pkg> matches the specified <grep-args>.
 # With the 'show' <action> this can be used that the package actually exists,
 # has the expected version, etc.
-deb_check()
+apt_check()
 {
     local action="$1"
     local pkg="$2"
@@ -197,14 +197,14 @@ deb_check()
     LANG= apt-cache "$action" "$pkg" 2>/dev/null | egrep -q "$@"
 }
 
-# deb_pkg [--test] <pkg1> ...
+# apt_pkg [--test] <pkg1> ...
 #
 # If <pkg1> exists, schedule it for installation and return success.
 # Otherwise try again with the next package in the list.
 #
 # If none of the packages exist and --test was not specified, add them all
 # to the missing packages list and return failure.
-deb_pkg()
+apt_pkg()
 {
     local pkg pkgarch
     local test=
@@ -218,7 +218,7 @@ deb_pkg()
     for pkgarch in $*
     do
         pkg=`echo "$pkgarch" | sed -e "s/:.*//g"`
-        if deb_check show "$pkgarch" "Package: $pkg"
+        if apt_check show "$pkgarch" "Package: $pkg"
         then
             echo " yes"
             pkginstall="$pkginstall $pkgarch"
@@ -230,7 +230,7 @@ deb_pkg()
     return 1
 }
 
-# deb_multi [--test|--if-0 <rc>|--if-not-0 <rc>] <pkg1> ...
+# apt_multi [--test|--if-0 <rc>|--if-not-0 <rc>] <pkg1> ...
 #
 # Schedules installation of both the 32- and 64-bit versions of the package
 # if possible. Otherwise installs the 64-bit version and marks the 32-bit one
@@ -249,7 +249,7 @@ deb_pkg()
 # If <pkg1> does not exist, try again with the next package in the list.
 # If none of the packages exists and --test was not specified, add them all
 # to the missing packages list and return failure.
-deb_multi()
+apt_multi()
 {
     local pkg
     local test=
@@ -271,17 +271,17 @@ deb_multi()
     for pkg in $*
     do
         echo -n "Checking multiarch $pkg..."
-        if [ -z "$not_multi" ] && deb_check show "$pkg" "Multi-Arch: same"
+        if [ -z "$not_multi" ] && apt_check show "$pkg" "Multi-Arch: same"
         then
             echo " yes"
             pkginstall="$pkginstall $pkg:amd64 $pkg:i386"
             return 0
-        elif deb_check show "$pkg" "Architecture: all"
+        elif apt_check show "$pkg" "Architecture: all"
         then
             echo " all"
             pkginstall="$pkginstall $pkg"
             return 0
-        elif deb_check show "$pkg" "Package: $pkg"
+        elif apt_check show "$pkg" "Package: $pkg"
         then
             echo " broken"
             pkginstall="$pkginstall $pkg"
@@ -294,7 +294,7 @@ deb_multi()
     return 1
 }
 
-# deb_blacklist <canary> <version> <pkgdev> <pkglibs>
+# apt_blacklist <canary> <version> <pkgdev> <pkglibs>
 #
 # This is meant to deal with cases where multiarch support in <pkgdev> is
 # broken by the <canary> package in a hard to detect way.
@@ -302,27 +302,27 @@ deb_multi()
 # Checks the version of the <canary> package and if it matches <version>
 # installs the native <pkgdev> package and the 32-bit <pkglibs> package and
 # returns failure.
-# Otherwise invokes deb_multi() on <pkgdev> || <pkglibs> and returns success.
-deb_blacklist()
+# Otherwise invokes apt_multi() on <pkgdev> || <pkglibs> and returns success.
+apt_blacklist()
 {
     local canary="$1"
     local version="$2"
     local pkgdev="$3"
     local pkglibs="$4"
 
-    if deb_check show "$canary" "Version: $version"
+    if apt_check show "$canary" "Version: $version"
     then
         warning "Bad version for $canary, not using multiarch for $pkgdev"
-        deb_pkg "$pkgdev"
-        deb_pkg "$pkglibs:i386"
+        apt_pkg "$pkgdev"
+        apt_pkg "$pkglibs:i386"
         pkgbroken="$pkgbroken $pkgdev:i386"
         return 1
     fi
-    deb_multi "$pkgdev" || deb_multi "$pkglibs"
+    apt_multi "$pkgdev" || apt_multi "$pkglibs"
     return 0
 }
 
-deb_install()
+apt_install()
 {
     if [ -z "$opt_dry_run" ]
     then
@@ -345,7 +345,7 @@ deb_install()
 # Debian: Base Wine dependencies
 #
 
-deb_init()
+apt_init()
 {
     if [ `dpkg --print-architecture` != "amd64" ]
     then
@@ -360,133 +360,133 @@ deb_init()
     wt_libdirs="/lib/i386-linux-gnu /lib/x86_64-linux-gnu"
 }
 
-deb_wine()
+apt_wine()
 {
-    deb_pkg   bison
-    deb_pkg   flex
-    deb_pkg   gcc
-    deb_pkg   gcc-mingw-w64
-    deb_pkg   gcc-multilib
-    deb_pkg   git
-    deb_multi libasound2-dev
-    deb_multi libcapi20-dev
-    deb_multi libdbus-1-dev
-    deb_multi libfaudio-dev
+    apt_pkg   bison
+    apt_pkg   flex
+    apt_pkg   gcc
+    apt_pkg   gcc-mingw-w64
+    apt_pkg   gcc-multilib
+    apt_pkg   git
+    apt_multi libasound2-dev
+    apt_multi libcapi20-dev
+    apt_multi libdbus-1-dev
+    apt_multi libfaudio-dev
 
     # The FontConfig development package can only be installed if the FreeType
     # one supports multiarch
-    deb_multi libfreetype6
-    deb_multi libfreetype6-dev
-    deb_multi --if-0 $? libfontconfig1-dev || deb_multi libfontconfig1
+    apt_multi libfreetype6
+    apt_multi libfreetype6-dev
+    apt_multi --if-0 $? libfontconfig1-dev || apt_multi libfontconfig1
 
-    deb_multi libgl1-mesa-dev
-    deb_multi libglu1-mesa-dev
+    apt_multi libgl1-mesa-dev
+    apt_multi libglu1-mesa-dev
 
     # The GPhoto2 development package can only be installed if the Exif
     # one supports multiarch
-    deb_multi --test libexif-dev
-    deb_multi --if-0 $? libgphoto2-dev || deb_multi libgphoto2-6
+    apt_multi --test libexif-dev
+    apt_multi --if-0 $? libgphoto2-dev || apt_multi libgphoto2-6
 
-    deb_multi libgsm1-dev
-    # deb_multi  libhal-dev # Libhal is obsolete and usually not available
+    apt_multi libgsm1-dev
+    # apt_multi  libhal-dev # Libhal is obsolete and usually not available
 
     # The GnuTLS development package can only be installed if the idn2 one
     # one supports multiarch
-    deb_multi --test libidn2-0-dev
-    deb_multi --if-0 $? libgnutls28-dev || deb_multi libgnutls30
+    apt_multi --test libidn2-0-dev
+    apt_multi --if-0 $? libgnutls28-dev || apt_multi libgnutls30
 
-    deb_multi libjpeg62-turbo-dev libjpeg-turbo8-dev
-    deb_multi libkrb5-dev
-    deb_multi liblcms2-dev
-    deb_multi libldap2-dev
-    deb_multi libmpg123-dev
-    deb_multi libncurses5-dev
+    apt_multi libjpeg62-turbo-dev libjpeg-turbo8-dev
+    apt_multi libkrb5-dev
+    apt_multi liblcms2-dev
+    apt_multi libldap2-dev
+    apt_multi libmpg123-dev
+    apt_multi libncurses5-dev
 
     # The GStreamer development package can only be installed if the liborc
     # one supports multiarch
-    deb_multi --test liborc-0.4-dev
-    deb_multi --if-0 $? libgstreamer-plugins-base1.0-dev ||
-        deb_multi libgstreamer-plugins-base1.0-0
+    apt_multi --test liborc-0.4-dev
+    apt_multi --if-0 $? libgstreamer-plugins-base1.0-dev ||
+        apt_multi libgstreamer-plugins-base1.0-0
 
-    deb_multi libopenal-dev
-    deb_multi libosmesa6-dev
-    deb_multi libpcap0.8-dev || deb_multi libpcap0.8
-    deb_multi libpng-dev libpng12-dev
+    apt_multi libopenal-dev
+    apt_multi libosmesa6-dev
+    apt_multi libpcap0.8-dev || apt_multi libpcap0.8
+    apt_multi libpng-dev libpng12-dev
 
     # The PulseAudio development package can only be installed if the Glib2
     # one supports multiarch
-    deb_multi --test libglib2.0-dev
-    deb_multi --if-0 $? libpulse-dev || deb_multi libpulse0
+    apt_multi --test libglib2.0-dev
+    apt_multi --if-0 $? libpulse-dev || apt_multi libpulse0
 
     # On Debian 9 libsane-dev claims to support multiarch but is broken
-    deb_blacklist libsane-dev 1.0.25-4.1 libsane-dev libsane
+    apt_blacklist libsane-dev 1.0.25-4.1 libsane-dev libsane
 
     # On Ubuntu 18.04 libsdl2-dev depends on libmirclient-dev which breaks
     # without warning in a multiarch configuration!
-    deb_blacklist libmirclient-dev 0.31.1-0ubuntu1 libsdl2-dev libsdl2-2.0-0
+    apt_blacklist libmirclient-dev 0.31.1-0ubuntu1 libsdl2-dev libsdl2-2.0-0
 
     # The CUPS development package can only be installed if the libtiff and
     # libcupsimage ones support multiarch
     rc=0
-    deb_multi libtiff-dev libtiff5-dev || rc=1
-    deb_multi --test libcupsimage2-dev libcupsimage-dev || rc=1
-    deb_multi --if-0 $rc libcups2-dev || deb_multi libcups2
+    apt_multi libtiff-dev libtiff5-dev || rc=1
+    apt_multi --test libcupsimage2-dev libcupsimage-dev || rc=1
+    apt_multi --if-0 $rc libcups2-dev || apt_multi libcups2
 
-    deb_multi libudev-dev
-    deb_pkg   libunwind-dev # Wine only needs the 64-bit library
-    deb_multi libusb-1.0-0-dev
-    deb_multi libv4l-dev
-    deb_multi libvkd3d-dev
-    deb_multi libvulkan-dev
-    deb_multi libx11-dev
-    deb_multi libxcb1-dev
-    deb_multi libxcomposite-dev
-    deb_multi libxcursor-dev
-    deb_multi libxi-dev
-    deb_multi libxinerama-dev
+    apt_multi libudev-dev
+    apt_pkg   libunwind-dev # Wine only needs the 64-bit library
+    apt_multi libusb-1.0-0-dev
+    apt_multi libv4l-dev
+    apt_multi libvkd3d-dev
+    apt_multi libvulkan-dev
+    apt_multi libx11-dev
+    apt_multi libxcb1-dev
+    apt_multi libxcomposite-dev
+    apt_multi libxcursor-dev
+    apt_multi libxi-dev
+    apt_multi libxinerama-dev
 
     # The XML and XSLT development packages can only be installed if the ICU
     # one supports multiarch
-    deb_multi --test libicu-dev; rc=$?
-    deb_multi --if-0 $rc libxml2-dev || deb_multi libxml2
-    deb_multi --if-0 $rc libxslt1-dev || deb_multi libxslt1.1
+    apt_multi --test libicu-dev; rc=$?
+    apt_multi --if-0 $rc libxml2-dev || apt_multi libxml2
+    apt_multi --if-0 $rc libxslt1-dev || apt_multi libxslt1.1
 
-    deb_multi  libxrandr-dev
-    deb_multi  libxrender-dev
-    deb_multi  libxxf86vm-dev
-    deb_pkg    make
-    deb_multi  ocl-icd-opencl-dev
-    deb_multi  oss4-dev
-    deb_pkg    prelink
+    apt_multi  libxrandr-dev
+    apt_multi  libxrender-dev
+    apt_multi  libxxf86vm-dev
+    apt_pkg    make
+    apt_multi  ocl-icd-opencl-dev
+    apt_multi  oss4-dev
+    apt_pkg    prelink
 
     # For libnetapi
-    deb_check depends samba-libs:i386 'Depends: python3?-talloc:i386'
-    deb_multi --if-not-0 $? samba-dev
+    apt_check depends samba-libs:i386 'Depends: python3?-talloc:i386'
+    apt_multi --if-not-0 $? samba-dev
 
-    deb_multi unixodbc-dev || deb_multi libodbc1
+    apt_multi unixodbc-dev || apt_multi libodbc1
 }
 
-deb_wine_extra()
+apt_wine_extra()
 {
-    deb_pkg autoconf
-    deb_pkg python3   # For make_vulkan
-    deb_pkg unzip     # For make_unicode
-    deb_pkg wget      # For make_unicode, make_opengl
+    apt_pkg autoconf
+    apt_pkg python3   # For make_vulkan
+    apt_pkg unzip     # For make_unicode
+    apt_pkg wget      # For make_unicode, make_opengl
 }
 
-deb_wine_tests()
+apt_wine_tests()
 {
-    deb_pkg ttf-mscorefonts-installer
-    deb_pkg winbind   # For ntlm_auth
+    apt_pkg ttf-mscorefonts-installer
+    apt_pkg winbind   # For ntlm_auth
 }
 
-deb_wt_daily()
+apt_wt_daily()
 {
-    deb_pkg ntfs-3g
-    deb_pkg time
+    apt_pkg ntfs-3g
+    apt_pkg time
 }
 
-deb_workarounds()
+apt_workarounds()
 {
     local xsltconfig
     # Work around the missing or broken multiarch support where possible
@@ -531,7 +531,7 @@ deb_workarounds()
     wt_create_sos unixodbc-dev libodbc
 }
 
-deb_epilogue()
+apt_epilogue()
 {
     if wt_explain_bad_pkg "faudio-dev"
     then
@@ -677,9 +677,9 @@ wt_parse_cmdline()
 
 wt_init()
 {
-    if [ -f "/etc/debian_version" ]
+    if [ -x "/usr/bin/apt-cache" -a -x "/usr/bin/apt-get" ]
     then
-        wt_platform="deb"
+        wt_platform="apt"
     else
         error "This Linux distribution is not supported."
         exit 1
