@@ -195,16 +195,18 @@ deb_pkg()
         shift
     fi
 
-    echo "Checking $*..."
+    echo -n "Checking $*..."
     for pkgarch in $*
     do
         pkg=`echo "$pkgarch" | sed -e "s/:.*//g"`
         if deb_check show "$pkgarch" "Package: $pkg"
         then
+            echo " yes"
             pkginstall="$pkginstall $pkgarch"
             return 0
         fi
     done
+    echo " missing"
     [ -z "$test" ] && pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
     return 1
 }
@@ -247,23 +249,27 @@ deb_multi()
         shift 2
     fi
 
-    echo "Checking multiarch $*..."
     for pkg in $*
     do
+        echo -n "Checking multiarch $pkg..."
         if [ -z "$not_multi" ] && deb_check show "$pkg" "Multi-Arch: same"
         then
+            echo " yes"
             pkginstall="$pkginstall $pkg:amd64 $pkg:i386"
             return 0
         elif deb_check show "$pkg" "Architecture: all"
         then
+            echo " all"
             pkginstall="$pkginstall $pkg"
             return 0
         elif deb_check show "$pkg" "Package: $pkg"
         then
+            echo " broken"
             pkginstall="$pkginstall $pkg"
             [ -z "$test" ] && pkgbroken="$pkgbroken $pkg:i386"
             return 1
         fi
+        echo " missing"
     done
     [ -z "$test" ] && pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
     return 1
