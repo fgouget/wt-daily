@@ -270,7 +270,8 @@ deb_wine()
     # The CUPS development package can only be installed if the libtiff and
     # libcupsimage ones support multiarch
     deb_pkg   libcups2-dev; deb_multi libcups2
-    deb_multi libtiff-dev libtiff5-dev && deb_multi --ignore libcupsimage-dev &&
+    deb_multi libtiff-dev libtiff5-dev &&
+        deb_multi --ignore libcupsimage2-dev libcupsimage-dev &&
         deb_multi libcups2-dev
 
     deb_multi libudev-dev
