@@ -209,7 +209,14 @@ deb_pkg()
     return 1
 }
 
-# deb_multi [--test] <pkg1> ...
+# deb_multi [--test|--if-0 <rc>|--if-not-0 <rc>] <pkg1> ...
+#
+# Schedules installation of both the 32- and 64-bit versions of the package
+# if possible. Otherwise installs the 64-bit version and marks the 32-bit one
+# as broken.
+#
+# Specifically, if --if-0 (resp. --if-not-0) is specified and <rc> is not 0
+# (resp. is 0), assume the package does not support multiarch.
 #
 # If <pkg1> exists:
 # - If it supports multiarch schedule the installation of both 32- and 64-bit
@@ -225,16 +232,25 @@ deb_multi()
 {
     local pkg
     local test=
+    local not_multi=
     if [ "$1" = "--test" ]
     then
         test=1
         shift
+    elif [ "$1" = "--if-0" ]
+    then
+        [ "$2" = "0" ] || not_multi=1
+        shift 2
+    elif [ "$1" = "--if-not-0" ]
+    then
+        [ "$2" != "0" ] || not_multi=1
+        shift 2
     fi
 
     echo "Checking multiarch $*..."
     for pkg in $*
     do
-        if deb_check show "$pkg" "Multi-Arch: same"
+        if [ -z "$not_multi" ] && deb_check show "$pkg" "Multi-Arch: same"
         then
             pkginstall="$pkginstall $pkg:amd64 $pkg:i386"
             return 0
@@ -334,25 +350,25 @@ deb_wine()
 
     # The FontConfig development package can only be installed if the FreeType
     # one supports multiarch
-    deb_pkg   libfreetype6-dev;   deb_multi libfreetype6
-    deb_pkg   libfontconfig1-dev; deb_multi libfontconfig1
-    deb_multi libfreetype6-dev && deb_multi libfontconfig1-dev
+    deb_multi libfreetype6
+    deb_multi libfreetype6-dev
+    deb_multi --if-0 $? libfontconfig1-dev || deb_multi libfontconfig1
 
     deb_multi libgl1-mesa-dev
     deb_multi libglu1-mesa-dev
 
     # The GPhoto2 development package can only be installed if the Exif
     # one supports multiarch
-    deb_pkg   libgphoto2-dev; deb_multi libgphoto2-6
-    deb_multi --test libexif-dev && deb_multi libgphoto2-dev
+    deb_multi --test libexif-dev
+    deb_multi --if-0 $? libgphoto2-dev || deb_multi libgphoto2-6
 
     deb_multi libgsm1-dev
     # deb_multi  libhal-dev # Libhal is obsolete and usually not available
 
     # The GnuTLS development package can only be installed if the idn2 one
     # one supports multiarch
-    deb_pkg   libgnutls28-dev; deb_multi libgnutls30
-    deb_multi --test libidn2-0-dev && deb_multi libgnutls28-dev
+    deb_multi --test libidn2-0-dev
+    deb_multi --if-0 $? libgnutls28-dev || deb_multi libgnutls30
 
     deb_multi libjpeg62-turbo-dev libjpeg-turbo8-dev
     deb_multi libkrb5-dev
@@ -363,20 +379,19 @@ deb_wine()
 
     # The GStreamer development package can only be installed if the liborc
     # one supports multiarch
-    deb_pkg   libgstreamer-plugins-base1.0-dev
-    deb_multi libgstreamer-plugins-base1.0-0
-    deb_multi --test liborc-0.4-dev && deb_multi libgstreamer-plugins-base1.0-dev
+    deb_multi --test liborc-0.4-dev
+    deb_multi --if-0 $? libgstreamer-plugins-base1.0-dev ||
+        deb_multi libgstreamer-plugins-base1.0-0
 
     deb_multi libopenal-dev
     deb_multi libosmesa6-dev
-    deb_multi libpcap0.8-dev ||
-        deb_multi libpcap0.8
+    deb_multi libpcap0.8-dev || deb_multi libpcap0.8
     deb_multi libpng-dev libpng12-dev
 
     # The PulseAudio development package can only be installed if the Glib2
     # one supports multiarch
-    deb_pkg libpulse-dev; deb_multi libpulse0
-    deb_multi --test libglib2.0-dev && deb_multi libpulse-dev
+    deb_multi --test libglib2.0-dev
+    deb_multi --if-0 $? libpulse-dev || deb_multi libpulse0
 
     # On Debian 9 libsane-dev claims to support multiarch but is broken
     deb_blacklist libsane-dev 1.0.25-4.1 libsane-dev libsane
@@ -387,10 +402,10 @@ deb_wine()
 
     # The CUPS development package can only be installed if the libtiff and
     # libcupsimage ones support multiarch
-    deb_pkg   libcups2-dev; deb_multi libcups2
-    deb_multi libtiff-dev libtiff5-dev &&
-        deb_multi --test libcupsimage2-dev libcupsimage-dev &&
-        deb_multi libcups2-dev
+    rc=0
+    deb_multi libtiff-dev libtiff5-dev || rc=1
+    deb_multi --test libcupsimage2-dev libcupsimage-dev || rc=1
+    deb_multi --if-0 $rc libcups2-dev || deb_multi libcups2
 
     deb_multi libudev-dev
     deb_pkg   libunwind-dev # Wine only needs the 64-bit library
@@ -407,12 +422,9 @@ deb_wine()
 
     # The XML and XSLT development packages can only be installed if the ICU
     # one supports multiarch
-    deb_pkg libxml2-dev;  deb_multi libxml2
-    deb_pkg libxslt1-dev; deb_multi libxslt1.1
-    deb_multi --test libicu-dev && {
-        deb_multi libxml2-dev
-        deb_multi libxslt1-dev
-    }
+    deb_multi --test libicu-dev; rc=$?
+    deb_multi --if-0 $rc libxml2-dev || deb_multi libxml2
+    deb_multi --if-0 $rc libxslt1-dev || deb_multi libxslt1.1
 
     deb_multi  libxrandr-dev
     deb_multi  libxrender-dev
@@ -423,16 +435,10 @@ deb_wine()
     deb_pkg    prelink
 
     # For libnetapi
-    if deb_check depends samba-libs:i386 'Depends: python3?-talloc:i386'
-    then
-        deb_pkg samba-dev
-        pkgbroken="$pkgbroken samba-dev:i386"
-    else
-        deb_multi samba-dev
-    fi
+    deb_check depends samba-libs:i386 'Depends: python3?-talloc:i386'
+    deb_multi --if-not-0 $? samba-dev
 
-    deb_multi unixodbc-dev ||
-        deb_multi libodbc1
+    deb_multi unixodbc-dev || deb_multi libodbc1
 }
 
 deb_wine_extra()
