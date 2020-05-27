@@ -178,20 +178,20 @@ deb_check()
     LANG= apt-cache "$action" "$pkg" 2>/dev/null | egrep -q "$@"
 }
 
-# deb_pkg [--ignore] <pkg1> ...
+# deb_pkg [--test] <pkg1> ...
 #
 # If <pkg1> exists, schedule it for installation and return success.
 # Otherwise try again with the next package in the list.
 #
-# If none of the packages exist and --ignore was not specified, add them all
+# If none of the packages exist and --test was not specified, add them all
 # to the missing packages list and return failure.
 deb_pkg()
 {
     local pkg pkgarch
-    local ignore=
-    if [ "$1" = "--ignore" ]
+    local test=
+    if [ "$1" = "--test" ]
     then
-        ignore=1
+        test=1
         shift
     fi
 
@@ -205,11 +205,11 @@ deb_pkg()
             return 0
         fi
     done
-    [ -z "$ignore" ] && pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
+    [ -z "$test" ] && pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
     return 1
 }
 
-# deb_multi [--ignore] <pkg1> ...
+# deb_multi [--test] <pkg1> ...
 #
 # If <pkg1> exists:
 # - If it supports multiarch schedule the installation of both 32- and 64-bit
@@ -219,15 +219,15 @@ deb_pkg()
 #   version as broken and return failure.
 #
 # If <pkg1> does not exist, try again with the next package in the list.
-# If none of the packages exists and --ignore was not specified, add them all
+# If none of the packages exists and --test was not specified, add them all
 # to the missing packages list and return failure.
 deb_multi()
 {
     local pkg
-    local ignore=
-    if [ "$1" = "--ignore" ]
+    local test=
+    if [ "$1" = "--test" ]
     then
-        ignore=1
+        test=1
         shift
     fi
 
@@ -245,11 +245,11 @@ deb_multi()
         elif deb_check show "$pkg" "Package: $pkg"
         then
             pkginstall="$pkginstall $pkg"
-            [ -z "$ignore" ] && pkgbroken="$pkgbroken $pkg:i386"
+            [ -z "$test" ] && pkgbroken="$pkgbroken $pkg:i386"
             return 1
         fi
     done
-    [ -z "$ignore" ] && pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
+    [ -z "$test" ] && pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
     return 1
 }
 
@@ -344,7 +344,7 @@ deb_wine()
     # The GPhoto2 development package can only be installed if the Exif
     # one supports multiarch
     deb_pkg   libgphoto2-dev; deb_multi libgphoto2-6
-    deb_multi --ignore libexif-dev && deb_multi libgphoto2-dev
+    deb_multi --test libexif-dev && deb_multi libgphoto2-dev
 
     deb_multi libgsm1-dev
     # deb_multi  libhal-dev # Libhal is obsolete and usually not available
@@ -352,7 +352,7 @@ deb_wine()
     # The GnuTLS development package can only be installed if the idn2 one
     # one supports multiarch
     deb_pkg   libgnutls28-dev; deb_multi libgnutls30
-    deb_multi --ignore libidn2-0-dev && deb_multi libgnutls28-dev
+    deb_multi --test libidn2-0-dev && deb_multi libgnutls28-dev
 
     deb_multi libjpeg62-turbo-dev libjpeg-turbo8-dev
     deb_multi libkrb5-dev
@@ -365,7 +365,7 @@ deb_wine()
     # one supports multiarch
     deb_pkg   libgstreamer-plugins-base1.0-dev
     deb_multi libgstreamer-plugins-base1.0-0
-    deb_multi --ignore liborc-0.4-dev && deb_multi libgstreamer-plugins-base1.0-dev
+    deb_multi --test liborc-0.4-dev && deb_multi libgstreamer-plugins-base1.0-dev
 
     deb_multi libopenal-dev
     deb_multi libosmesa6-dev
@@ -376,7 +376,7 @@ deb_wine()
     # The PulseAudio development package can only be installed if the Glib2
     # one supports multiarch
     deb_pkg libpulse-dev; deb_multi libpulse0
-    deb_multi --ignore libglib2.0-dev && deb_multi libpulse-dev
+    deb_multi --test libglib2.0-dev && deb_multi libpulse-dev
 
     # On Debian 9 libsane-dev claims to support multiarch but is broken
     deb_blacklist libsane-dev 1.0.25-4.1 libsane-dev libsane
@@ -389,7 +389,7 @@ deb_wine()
     # libcupsimage ones support multiarch
     deb_pkg   libcups2-dev; deb_multi libcups2
     deb_multi libtiff-dev libtiff5-dev &&
-        deb_multi --ignore libcupsimage2-dev libcupsimage-dev &&
+        deb_multi --test libcupsimage2-dev libcupsimage-dev &&
         deb_multi libcups2-dev
 
     deb_multi libudev-dev
@@ -409,7 +409,7 @@ deb_wine()
     # one supports multiarch
     deb_pkg libxml2-dev;  deb_multi libxml2
     deb_pkg libxslt1-dev; deb_multi libxslt1.1
-    deb_multi --ignore libicu-dev && {
+    deb_multi --test libicu-dev && {
         deb_multi libxml2-dev
         deb_multi libxslt1-dev
     }
