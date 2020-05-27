@@ -32,6 +32,7 @@ opt_dry_run=""
 
 dry_run()
 {
+    local rc
     echo "$@"
     [ -z "$opt_dry_run" ] || return 0
     "$@"
@@ -57,8 +58,9 @@ wt_create_so_warn=1
 
 wt_create_so()
 {
-    sodev="$1"
-    solib="$2"
+    local libdir rc sover usrlibdir
+    local sodev="$1"
+    local solib="$2"
     [ -n "$solib" ] || solib="$sodev"
     if [ -z "$wt_libdirs" ]
     then
@@ -100,7 +102,8 @@ wt_create_so()
 
 wt_create_sos()
 {
-    pkg="$1"
+    local lib success
+    local pkg="$1"
     shift
 
     success=1
@@ -127,7 +130,8 @@ wt_create_sos()
 
 deb_pkg()
 {
-    ignore=
+    local pkg pkgarch
+    local ignore=
     if [ "$1" = "--ignore" ]
     then
         ignore=1
@@ -137,8 +141,8 @@ deb_pkg()
     echo "Checking $*..."
     for pkgarch in $*
     do
-        _pkg=`echo "$pkgarch" | sed -e "s/:.*//g"`
-        if LANG= apt-cache show "$pkgarch" 2>/dev/null | grep -q "Package: $_pkg"
+        pkg=`echo "$pkgarch" | sed -e "s/:.*//g"`
+        if LANG= apt-cache show "$pkgarch" 2>/dev/null | grep -q "Package: $pkg"
         then
             pkginstall="$pkginstall $pkgarch"
             return
@@ -149,7 +153,8 @@ deb_pkg()
 
 deb_multi()
 {
-    ignore=
+    local pkg
+    local ignore=
     if [ "$1" = "--ignore" ]
     then
         ignore=1
@@ -157,21 +162,21 @@ deb_multi()
     fi
 
     echo "Checking multiarch $*..."
-    for _pkg in $*
+    for pkg in $*
     do
-        LANG= apt-cache show "$_pkg" 2>/dev/null | grep -q "Multi-Arch: same"
+        LANG= apt-cache show "$pkg" 2>/dev/null | grep -q "Multi-Arch: same"
         if [ $? -eq 0 ]
         then
-            pkginstall="$pkginstall $_pkg:amd64 $_pkg:i386"
+            pkginstall="$pkginstall $pkg:amd64 $pkg:i386"
             return 0
-        elif LANG= apt-cache show "$_pkg" 2>/dev/null | grep -q "Architecture: all"
+        elif LANG= apt-cache show "$pkg" 2>/dev/null | grep -q "Architecture: all"
         then
-            pkginstall="$pkginstall $_pkg"
+            pkginstall="$pkginstall $pkg"
             return 0
-        elif LANG= apt-cache show "$_pkg" 2>/dev/null | grep -q "Package: $_pkg"
+        elif LANG= apt-cache show "$pkg" 2>/dev/null | grep -q "Package: $pkg"
         then
-            pkginstall="$pkginstall $_pkg"
-            [ -z "$ignore" ] && pkgbroken="$pkgbroken $_pkg:i386"
+            pkginstall="$pkginstall $pkg"
+            [ -z "$ignore" ] && pkgbroken="$pkgbroken $pkg:i386"
             return 1
         fi
     done
@@ -181,10 +186,10 @@ deb_multi()
 
 deb_blacklist()
 {
-    canary="$1"
-    version="$2"
-    pkgdev="$3"
-    pkglibs="$4"
+    local canary="$1"
+    local version="$2"
+    local pkgdev="$3"
+    local pkglibs="$4"
 
     if LANG= apt-cache show "$canary" 2>/dev/null | grep -q "Version: $version"
     then
@@ -369,6 +374,7 @@ deb_wt_daily()
 
 deb_workarounds()
 {
+    local xsltconfig
     # Work around the missing or broken multiarch support where possible
 
     # Needed for Debian 10
@@ -422,7 +428,8 @@ deb_workarounds()
 
 wt_parse_cmdline()
 {
-    usage=""
+    local arg
+    local usage=""
     while [ $# -gt 0 ]
     do
         arg="$1"
