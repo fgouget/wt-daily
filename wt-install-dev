@@ -388,7 +388,6 @@ apt_wine()
     apt_multi --if-0 $? libgphoto2-dev || apt_multi libgphoto2-6
 
     apt_multi libgsm1-dev
-    # apt_multi  libhal-dev # Libhal is obsolete and usually not available
 
     # The GnuTLS development package can only be installed if the idn2 one
     # one supports multiarch
