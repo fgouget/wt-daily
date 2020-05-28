@@ -476,6 +476,18 @@ apt_wine_extra()
 
 apt_wine_tests()
 {
+    # GStreamer plugins for the quartz (winegstreamer) tests
+    apt_multi gstreamer1.0-libav
+
+    apt_multi --test libmjpegutils-2.1-0
+    apt_multi --if-0 $? gstreamer1.0-plugins-bad
+
+    apt_multi gstreamer1.0-plugins-base
+    apt_multi gstreamer1.0-plugins-good
+
+    apt_multi --test libsidplay1v5
+    apt_multi --if-0 $? gstreamer1.0-plugins-ugly
+
     apt_pkg ttf-mscorefonts-installer
     apt_pkg winbind   # For ntlm_auth
 }
@@ -766,6 +778,14 @@ zypper_wine_extra()
 zypper_wine_tests()
 {
     zypper_pkg fetchmsttfonts
+
+    # GStreamer plugins for the quartz (winegstreamer) tests
+    zypper_multi gstreamer-plugins-bad
+    zypper_multi gstreamer-plugins-base
+    zypper_multi gstreamer-plugins-good
+    zypper_multi gstreamer-plugins-libav
+    zypper_multi gstreamer-plugins-ugly
+
     zypper_pkg samba-winbind   # For ntlm_auth
 }
 
