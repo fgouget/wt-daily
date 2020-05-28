@@ -606,7 +606,7 @@ zypper_packages=""
 
 zypper_pkg()
 {
-    local pkgarch
+    local pkg
     if [ -z "$zypper_packages" ]
     then
         echo "Grabbing the available package list..."
@@ -618,18 +618,18 @@ zypper_pkg()
         fi
     fi
 
-    echo -n "Checking $*..."
-    for pkgarch in $*
+    for pkg in $*
     do
+        echo -n "Checking $pkg..."
         case "$zypper_packages" in
-        *" $pkgarch "*)
+        *" $pkg "*)
              echo " yes"
-             pkginstall="$pkginstall $pkgarch"
+             pkginstall="$pkginstall $pkg"
              return 0
              ;;
         esac
+        echo " no"
     done
-    echo " no"
     pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
     return 1
 }
