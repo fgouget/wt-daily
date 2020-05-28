@@ -694,12 +694,13 @@ zypper_wine()
     zypper_multi gstreamer-plugins-base-devel
 
     zypper_multi krb5-devel
-    zypper_multi libcom_err-devel
-    zypper_multi libexif-devel
+    zypper_multi libcom_err-devel # Missing dependency in -devel-32bit
+
     zypper_multi libgnutls-devel
 
     zypper_multi libgphoto2-devel
     zypper_multi libgphoto2-6 # Missing dependency in -devel-32bit
+    zypper_multi libexif-devel # Missing dependency in -devel-32bit
 
     zypper_multi libgsm-devel
     zypper_multi libjpeg8-devel
