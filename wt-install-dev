@@ -48,6 +48,7 @@ dry_run()
 #
 #####
 
+opt_yes=
 pkginstall=""
 pkgbroken=""
 pkgmissing=""
@@ -336,7 +337,7 @@ apt_install()
         done
         echo " done"
     fi
-    dry_run apt install `wt_pretty_list "$pkginstall"` || exit 1
+    dry_run apt install $opt_yes `wt_pretty_list "$pkginstall"` || exit 1
     echo
 }
 
@@ -911,6 +912,7 @@ wt_parse_cmdline()
                       ;;
         --packages)   opt_packages="1" ;;
         --workarounds) opt_workarounds="1" ;;
+        --yes)        opt_yes="-y";;
         --dry-run)    opt_dry_run="1" ;;
         --help|-h|-?)
             usage=0
@@ -941,7 +943,7 @@ wt_parse_cmdline()
 
     if [ "$usage" = "0" ]
     then
-        echo "Usage: $name0 [--no-wine] [--no-extra] [--tests] [--wt-daily] [--packages] [--workarounds] [--dry-run] [--help]"
+        echo "Usage: $name0 [--no-wine] [--no-extra] [--tests] [--wt-daily] [--packages] [--workarounds] [--yes] [--dry-run] [--help]"
         echo
 
         echo "Installs the packages needed to build the 32- and 64-bit versions of Wine. When possible applies workarounds if installing both the 32- and 64-bit development packages is impossible. Can also install some extra packages needed by the tests and the wt-daily scripts."
@@ -963,6 +965,7 @@ wt_parse_cmdline()
         echo "  --packages   Install the packages."
         echo "  --workarounds Apply workarounds for packages that don't support multiarch so"
         echo "               that both the 32- and 64-bit versions of Wine can be built."
+        echo "  --yes        Pass '-y' to apt install."
         echo "  --dry-run    Only show which actions would be taken."
         echo "  --help, -h   Shows this help message."
         exit 0
