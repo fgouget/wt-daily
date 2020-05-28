@@ -500,46 +500,50 @@ apt_wt_daily()
 apt_workarounds()
 {
     local xsltconfig
-    # Work around the missing or broken multiarch support where possible
 
-    # Needed for Debian 10
-    wt_create_sos libsdl2-dev libSDL2-2.0 # Broken up to 2.0.9
-    wt_create_so libSDL2 libSDL2-2.0
-
-    # Needed for Ubuntu 18.04
-    wt_create_sos libcups2-dev libcups
-    wt_create_sos libfontconfig1-dev libfontconfig
-    wt_create_sos libfreetype6-dev libfreetype
-    wt_create_sos libgnutls28-dev libgnutls
-    wt_create_sos libpcap0.8-dev libpcap
-    wt_create_sos libtiff-dev libtiff
-    wt_create_sos libgstreamer-plugins-base1.0-dev libgstaudio-1.0 libgstbase-1.0 libgstreamer-1.0 libgstvideo-1.0
-
-    # Ubuntu 18.04 is missing libxslt/xsltconfig.h
-    xsltconfig="libxslt/xsltconfig.h"
-    if [ -f "/usr/include/x86_64-linux-gnu/$xsltconfig" -a \
-         ! -f "/usr/include/i386-linux-gnu/$xsltconfig" -a \
-         ! -f "/usr/include/$xsltconfig" -a \
-         -d "/usr/include/libxslt" ]
+    if [ "$opt_wine" = "1" ]
     then
-        dry_run ln -s "../x86_64-linux-gnu/$xsltconfig" "/usr/include/$xsltconfig"
-    elif [ -f "/usr/include/x86_64-linux-gnu/$xsltconfig" -a \
-           -f "/usr/include/i386-linux-gnu/$xsltconfig" -a \
-           -h "/usr/include/$xsltconfig" ]
-    then
-        echo "Removing the obsolete /usr/include/$xsltconfig symlink (was for libxslt1-dev)"
-        dry_run rm "/usr/include/$xsltconfig"
+        # Work around the missing or broken multiarch support where possible
+
+        # Needed for Debian 10
+        wt_create_sos libsdl2-dev libSDL2-2.0 # Broken up to 2.0.9
+        wt_create_so libSDL2 libSDL2-2.0
+
+        # Needed for Ubuntu 18.04
+        wt_create_sos libcups2-dev libcups
+        wt_create_sos libfontconfig1-dev libfontconfig
+        wt_create_sos libfreetype6-dev libfreetype
+        wt_create_sos libgnutls28-dev libgnutls
+        wt_create_sos libpcap0.8-dev libpcap
+        wt_create_sos libtiff-dev libtiff
+        wt_create_sos libgstreamer-plugins-base1.0-dev libgstaudio-1.0 libgstbase-1.0 libgstreamer-1.0 libgstvideo-1.0
+
+        # Ubuntu 18.04 is missing libxslt/xsltconfig.h
+        xsltconfig="libxslt/xsltconfig.h"
+        if [ -f "/usr/include/x86_64-linux-gnu/$xsltconfig" -a \
+             ! -f "/usr/include/i386-linux-gnu/$xsltconfig" -a \
+             ! -f "/usr/include/$xsltconfig" -a \
+             -d "/usr/include/libxslt" ]
+        then
+            dry_run ln -s "../x86_64-linux-gnu/$xsltconfig" "/usr/include/$xsltconfig"
+        elif [ -f "/usr/include/x86_64-linux-gnu/$xsltconfig" -a \
+               -f "/usr/include/i386-linux-gnu/$xsltconfig" -a \
+               -h "/usr/include/$xsltconfig" ]
+        then
+            echo "Removing the obsolete /usr/include/$xsltconfig symlink (was for libxslt1-dev)"
+            dry_run rm "/usr/include/$xsltconfig"
+        fi
+
+        # Needed for Debian 9
+        wt_create_sos libgphoto2-dev libgphoto2 libgphoto2_port
+        wt_create_sos libjpeg62-turbo-dev libjpeg
+        wt_create_sos libkrb5-dev libcom_err libgssapi_krb5 libk5crypto libkrb5
+        wt_create_sos libpulse-dev libpulse
+        wt_create_sos libsane-dev libsane
+        wt_create_sos libxml2-dev libxml2
+        wt_create_sos libxslt1-dev libxslt
+        wt_create_sos unixodbc-dev libodbc
     fi
-
-    # Needed for Debian 9
-    wt_create_sos libgphoto2-dev libgphoto2 libgphoto2_port
-    wt_create_sos libjpeg62-turbo-dev libjpeg
-    wt_create_sos libkrb5-dev libcom_err libgssapi_krb5 libk5crypto libkrb5
-    wt_create_sos libpulse-dev libpulse
-    wt_create_sos libsane-dev libsane
-    wt_create_sos libxml2-dev libxml2
-    wt_create_sos libxslt1-dev libxslt
-    wt_create_sos unixodbc-dev libodbc
 }
 
 apt_epilogue()
@@ -557,7 +561,7 @@ apt_epilogue()
         echo "  Debian 10 which may provide a viable workaround."
         echo
     fi
-    if [ -n "$opt_packages" ]
+    if [ "$opt_wine" = "1" -a -n "$opt_packages" ]
     then
         echo "* HAL is known not to be available but is obsolete anyway."
         echo
@@ -797,12 +801,15 @@ zypper_wt_daily()
 
 zypper_workarounds()
 {
-    # Work around the missing 32-bit development packages where possible
+    if [ "$opt_wine" = "1" ]
+    then
+        # Work around the missing 32-bit development packages where possible
 
-    # Needed for openSUSE Leap 15.1
-    wt_create_sos gstreamer-devel-32bit libgstbase-1.0 libgstreamer-1.0
-    wt_create_sos libnetapi-devel-32bit libnetapi
-    wt_create_sos Mesa-libGL-devel-32bit libGL
+        # Needed for openSUSE Leap 15.1
+        wt_create_sos gstreamer-devel-32bit libgstbase-1.0 libgstreamer-1.0
+        wt_create_sos libnetapi-devel-32bit libnetapi
+        wt_create_sos Mesa-libGL-devel-32bit libGL
+    fi
 }
 
 zypper_epilogue()
@@ -823,7 +830,7 @@ zypper_epilogue()
         echo "  https://wiki.winehq.org/OpenSUSE#Build_Tools_and_Dependencies"
         echo
     fi
-    if [ -n "$opt_packages" ]
+    if [ "$opt_wine" = "1" -a -n "$opt_packages" ]
     then
         echo "* HAL and OSS4 are known not to be available but are obsolete anyway."
         echo
