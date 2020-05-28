@@ -241,14 +241,14 @@ apt_pkg()
 #
 # If <pkg1> exists:
 # - If it supports multiarch schedule the installation of both 32- and 64-bit
-#   versions and return success.
+#   versions and return 0 (success).
 # - If it is architecture neutral schedule installation and return success.
-# - Otherwise schedule installation of the native package, mark the 32-bit
-#   version as broken and return failure.
+# - Otherwise schedule installation of the 64-bit package, mark the 32-bit
+#   version as broken and return 1 (failure).
 #
 # If <pkg1> does not exist, try again with the next package in the list.
 # If none of the packages exists and --test was not specified, add them all
-# to the missing packages list and return failure.
+# to the missing packages list and return 2 (failure).
 apt_multi()
 {
     local pkg
@@ -291,7 +291,7 @@ apt_multi()
         echo " missing"
     done
     [ -z "$test" ] && pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
-    return 1
+    return 2
 }
 
 # apt_blacklist <canary> <version> <pkgdev> <pkglibs>
@@ -604,6 +604,13 @@ apt_epilogue()
 
 zypper_packages=""
 
+# zypper_pkg <pkg1> ...
+#
+# If <pkg1> exists, schedule it for installation and return success.
+# Otherwise try again with the next package in the list.
+#
+# If none of the packages exists, add them all to the missing packages list
+# and return failure.
 zypper_pkg()
 {
     local pkg
@@ -634,6 +641,15 @@ zypper_pkg()
     return 1
 }
 
+# zypper_multi <pkg1> ...
+#
+# Iterates over the package list until it finds a package that exists and
+# schedules both its 32- and 64-bit versions for installation using
+# zypper_pkg().
+#
+# If both 32- and 64-bit versions were found return 0 (success).
+# If only the 64-bit version was found return 1 (failure).
+# If no matching package was found return 2 (failure).
 zypper_multi()
 {
     local pkg rc
@@ -641,10 +657,11 @@ zypper_multi()
     do
         rc=0
         zypper_pkg "$pkg" || rc=1
-        zypper_pkg "$pkg-32bit" || rc=1
-        [ $rc -eq 0 ] && return 0
+        zypper_pkg "$pkg-32bit" || rc=$(($pkg + 1))
+        [ $rc -lt 0 ] && return 0
+        [ $rc -eq 1 ] && return 1
     done
-    return 1
+    return 2
 }
 
 zypper_install()
