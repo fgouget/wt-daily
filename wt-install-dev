@@ -730,6 +730,8 @@ zypper_init()
 
     refresh=
     zypper_addrepo FAudio-devel Emulators:Wine "the FAudio packages" && refresh=1
+    zypper_addrepo mingw32-cross-gcc windows:mingw:win32 "the win32 MinGW cross-compiler" && refresh=1
+    zypper_addrepo mingw64-cross-gcc windows:mingw:win64 "the win64 MinGW cross-compiler" && refresh=1
     if [ -n "$refresh" ]
     then
         dry_run zypper refresh
@@ -748,6 +750,8 @@ zypper_wine()
     zypper_multi gcc
     zypper_pkg   git
     zypper_pkg   make
+    zypper_pkg   mingw32-cross-gcc
+    zypper_pkg   mingw64-cross-gcc
     zypper_pkg   prelink
 
     # Libraries
@@ -909,8 +913,19 @@ zypper_epilogue()
     then
         echo "* HAL and OSS4 are known not to be available but are obsolete anyway."
         echo
-
-        echo "* The MinGW compiler is not available and there is no clear workaround."
+    fi
+    if wt_explain_bad_pkg "mingw32-cross-gcc"
+    then
+        echo "* The MinGW compiler is available through the windows:mingw:win32 projects"
+        echo "  on the OBS."
+        echo "  https://build.opensuse.org/project/show/windows:mingw:win32"
+        echo
+    fi
+    if wt_explain_bad_pkg "mingw64-cross-gcc"
+    then
+        echo "* The MinGW compiler is available through the windows:mingw:win64 projects"
+        echo "  on the OBS."
+        echo "  https://build.opensuse.org/project/show/windows:mingw:win64"
         echo
     fi
     if wt_explain_bad_pkg "ocl-icd-devel-32bit"
