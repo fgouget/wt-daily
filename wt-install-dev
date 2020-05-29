@@ -732,6 +732,7 @@ zypper_init()
     zypper_addrepo FAudio-devel Emulators:Wine "the FAudio packages" && refresh=1
     zypper_addrepo mingw32-cross-gcc windows:mingw:win32 "the win32 MinGW cross-compiler" && refresh=1
     zypper_addrepo mingw64-cross-gcc windows:mingw:win64 "the win64 MinGW cross-compiler" && refresh=1
+    zypper_addrepo vkd3d-devel home:dimesio "the vkd3d packages" && refresh=1
     if [ -n "$refresh" ]
     then
         dry_run zypper refresh
@@ -844,6 +845,8 @@ zypper_wine()
     zypper_multi unixODBC
 
     zypper_multi vkd3d-devel
+    zypper_multi libvkd3d1 # Missing dependency in -devel-32bit
+
     zypper_multi vulkan-devel
     zypper_multi libvulkan1 # Missing dependency in -devel-32bit
 
@@ -948,7 +951,8 @@ zypper_epilogue()
     fi
     if wt_explain_bad_pkg "vkd3d-devel"
     then
-        echo "* vkd3d is only available on openSUSE Tumbleweed."
+        echo "* vkd3d is only available through the home:dimesio project on the OBS."
+        echo "  https://build.opensuse.org/project/show/home:dimesio"
         echo
     fi
 }
