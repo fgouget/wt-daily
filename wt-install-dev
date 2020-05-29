@@ -721,11 +721,22 @@ zypper_install()
 
 zypper_init()
 {
+    local refresh
     if [ `arch` != "x86_64" ]
     then
         error "Expected a 64-bit openSUSE distribution"
         exit 1
     fi
+
+    refresh=
+    zypper_addrepo FAudio-devel Emulators:Wine "the FAudio packages" && refresh=1
+    if [ -n "$refresh" ]
+    then
+        dry_run zypper refresh
+        # Force reloading the package list
+        zypper_packages=""
+    fi
+
     wt_libdirs="/lib /lib64"
 }
 
@@ -744,7 +755,10 @@ zypper_wine()
     zypper_multi capi4linux-devel
     zypper_multi cups-devel
     zypper_multi dbus-1-devel
+
     zypper_multi FAudio-devel
+    zypper_multi libFAudio0 # Missing dependency in -devel-32bit
+
     zypper_multi fontconfig-devel
     zypper_multi fontconfig # Missing dependency in -devel-32bit
 
@@ -877,8 +891,8 @@ zypper_epilogue()
 {
     if wt_explain_bad_pkg "FAudio-devel"
     then
-        echo "* FAudio-devel is only available on openSUSE Tumbleweed."
-        echo "  https://build.opensuse.org/package/show/openSUSE%3AFactory/FAudio"
+        echo "* FAudio-devel is available through the Emulators:Wine project on the OBS."
+        echo "  https://build.opensuse.org/project/show/Emulators:Wine"
         echo
     fi
     if wt_explain_bad_pkg "gstreamer-devel-32bit"
