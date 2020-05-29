@@ -28,8 +28,6 @@ warning()
     echo "$name0:warning:" "$@" >&2
 }
 
-opt_dry_run=""
-
 dry_run()
 {
     local rc
@@ -48,7 +46,6 @@ dry_run()
 #
 #####
 
-opt_yes=
 pkginstall=""
 pkgbroken=""
 pkgmissing=""
@@ -1063,6 +1060,8 @@ then
     opt_wt_daily=""
     opt_packages=""
     opt_workarounds=""
+    opt_yes=""
+    opt_dry_run=""
     wt_parse_cmdline "$@"
     wt_init
     wt_install
