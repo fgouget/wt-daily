@@ -602,16 +602,8 @@ apt_epilogue()
 
 zypper_packages=""
 
-# zypper_pkg <pkg1> ...
-#
-# If <pkg1> exists, schedule it for installation and return success.
-# Otherwise try again with the next package in the list.
-#
-# If none of the packages exists, add them all to the missing packages list
-# and return failure.
-zypper_pkg()
+zypper_get_packages()
 {
-    local pkg
     if [ -z "$zypper_packages" ]
     then
         echo "Grabbing the available package list..."
@@ -622,7 +614,61 @@ zypper_pkg()
             exit 1
         fi
     fi
+}
 
+# zypper_addrepo <landmark> <project> <packages>
+#
+# Checks if the <landmark> package is available and returns immediately if it
+# is. Otherwise builds the OBS repository URL from the <project> string and
+# asks whether it should be added. If --yes was given or the user agrees the
+# repository is added but 'zypper refresh' is not called.
+#
+# Returns 0 if a repository was added, non-zero otherwise.
+zypper_addrepo()
+{
+    local a distroname url
+    local landmark="$1"
+    local project="$2"
+    local packages="$3"
+
+    zypper_get_packages
+    case "$zypper_packages" in
+    *" $landmark "*) return 1 ;;
+    esac
+
+    distroname=`zypper targetos | sed -e 's/-x86_64$//' -e 's/-/_/g'`
+    url="https://download.opensuse.org/repositories/$project/$distroname/$project.repo"
+    echo
+    echo "********************"
+    echo
+    echo "The OBS repository below is needed for $packages."
+    echo "$url"
+    echo
+    echo -n "Do you want to add it? [Y/n] "
+    if [ -n "$opt_yes" ]
+    then
+        echo "yes"
+        a="y"
+    else
+        read a
+    fi
+    [ -z "$a" -o "$a" = "y" -o "$a" = "Y" ] || return 1
+
+    dry_run zypper addrepo "$url"
+}
+
+# zypper_pkg <pkg1> ...
+#
+# If <pkg1> exists, schedule it for installation and return success.
+# Otherwise try again with the next package in the list.
+#
+# If none of the packages exists, add them all to the missing packages list
+# and return failure.
+zypper_pkg()
+{
+    local pkg
+
+    zypper_get_packages
     for pkg in $*
     do
         echo -n "Checking $pkg..."
