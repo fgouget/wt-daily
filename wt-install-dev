@@ -667,7 +667,7 @@ zypper_multi()
 
 zypper_install()
 {
-    dry_run zypper install `wt_pretty_list $pkginstall` || exit 1
+    dry_run zypper install $opt_yes `wt_pretty_list $pkginstall` || exit 1
     echo
 }
 
@@ -965,7 +965,7 @@ wt_parse_cmdline()
         echo "  --packages   Install the packages."
         echo "  --workarounds Apply workarounds for packages that don't support multiarch so"
         echo "               that both the 32- and 64-bit versions of Wine can be built."
-        echo "  --yes        Pass '-y' to apt install."
+        echo "  --yes        Answer yes to all package installation prompts."
         echo "  --dry-run    Only show which actions would be taken."
         echo "  --help, -h   Shows this help message."
         exit 0
