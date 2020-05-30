@@ -842,7 +842,10 @@ zypper_wine()
     zypper_multi sane-backends-devel
     zypper_multi sane-backends # Missing dependency in -devel-32bit
 
-    zypper_multi unixODBC-devel
+    # unixODBC-devel only contains the headers and pkg-config files while
+    # the .so symlinks are in unixODBC and unixODBC-32bit. While totally non
+    # standard this means there is no need for a unixODBC-devel-32bit package.
+    zypper_pkg   unixODBC-devel
     zypper_multi unixODBC
 
     zypper_multi vkd3d-devel
