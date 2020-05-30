@@ -618,7 +618,7 @@ zypper_pkg()
     if [ -z "$zypper_packages" ]
     then
         echo "Grabbing the available package list..."
-        zypper_packages=`zypper packages | cut -d'|' -f3 | sort -u`
+        zypper_packages=`zypper --non-interactive packages | cut -d'|' -f3 | sort -u`
         if [ -z "$zypper_packages" ]
         then
             error "'zypper packages' did not return the list of available packages"
