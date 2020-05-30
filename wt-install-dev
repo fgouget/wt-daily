@@ -626,7 +626,7 @@ zypper_get_packages()
 # Returns 0 if a repository was added, non-zero otherwise.
 zypper_addrepo()
 {
-    local a distroname url
+    local a distname url
     local landmark="$1"
     local project="$2"
     local packages="$3"
@@ -636,8 +636,8 @@ zypper_addrepo()
     *" $landmark "*) return 1 ;;
     esac
 
-    distroname=`zypper targetos | sed -e 's/-x86_64$//' -e 's/-/_/g'`
-    url="https://download.opensuse.org/repositories/$project/$distroname/$project.repo"
+    distname=`zypper targetos | sed -e 's/-x86_64$//' -e 's/-/_/g'`
+    url="https://download.opensuse.org/repositories/$project/$distname/$project.repo"
     echo
     echo "********************"
     echo
