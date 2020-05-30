@@ -456,7 +456,7 @@ apt_wine()
     apt_multi  oss4-dev
     apt_pkg    prelink
 
-    # For libnetapi
+    # For libnetapi (see bug 961867)
     apt_check depends samba-libs:i386 'Depends: python3?-talloc:i386'
     apt_multi --if-not-0 $? samba-dev
 
@@ -580,6 +580,7 @@ apt_epilogue()
         echo "* samba-dev ostensibly supports multiarch but the 32-bit version depends"
         echo "  on python:i386 through python-talloc and samba-libs. Similarly the 64-bit"
         echo "  version depends on python:amd64 thus breaking multiarch support."
+        echo "  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=961867"
         echo
     fi
     if wt_explain_bad_pkg "vkd3d-dev"
