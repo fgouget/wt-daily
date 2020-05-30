@@ -584,7 +584,7 @@ apt_epilogue()
     fi
     if wt_explain_bad_pkg "vkd3d-dev"
     then
-        echo "* vkd3d is only available on on distributions derived from Debian 10+."
+        echo "* vkd3d is only available on distributions derived from Debian 10+."
         echo
     fi
 }
