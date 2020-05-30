@@ -1103,7 +1103,7 @@ wt_epilogue()
     pkgworkaround=`wt_pretty_list "$pkgworkaround"`
     if [ -n "$pkgworkaround" ]
     then
-        echo "* Workarounds where successully applied for the following broken or missing"
+        echo "* Workarounds where successfully applied for the following broken or missing"
         echo "  packages."
         echo "  $pkgworkaround"
         echo
