@@ -735,7 +735,7 @@ zypper_init()
     zypper_addrepo vkd3d-devel home:dimesio "the vkd3d packages" && refresh=1
     if [ -n "$refresh" ]
     then
-        dry_run zypper refresh
+        dry_run zypper refresh $opt_yes
         # Force reloading the package list
         zypper_packages=""
     fi
