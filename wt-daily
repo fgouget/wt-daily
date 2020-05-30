@@ -205,7 +205,7 @@ run=`cat "$test_root/run" 2>/dev/null`
 #####
 
 # The self-update must be performed after reading the configuration file (so
-# it can set the self_updat'e default) but before parsing the command line so
+# it can set the self_update default) but before parsing the command line so
 # that "$@" is still usable.
 
 self_update()

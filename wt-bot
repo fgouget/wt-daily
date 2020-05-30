@@ -379,7 +379,7 @@ then
     git diff >"git.diff"
     if [ -s "git.diff" ]
     then
-        # There is uncommited stuff. Just commit it so we can do a rebase
+        # There is uncommitted stuff. Just commit it so we can do a rebase
         git commit -a -m "$name0 commit `date +%Y%m%d`"
         if [ $? -ne 0 ]
         then
