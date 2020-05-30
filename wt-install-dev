@@ -728,6 +728,11 @@ zypper_init()
         exit 1
     fi
 
+    wt_libdirs="/lib /lib64"
+}
+
+zypper_wine()
+{
     refresh=
     zypper_addrepo FAudio-devel Emulators:Wine "the FAudio packages" && refresh=1
     zypper_addrepo mingw32-cross-gcc windows:mingw:win32 "the win32 MinGW cross-compiler" && refresh=1
@@ -740,11 +745,6 @@ zypper_init()
         zypper_packages=""
     fi
 
-    wt_libdirs="/lib /lib64"
-}
-
-zypper_wine()
-{
     # Tools
     zypper_pkg   bison
     zypper_pkg   flex
