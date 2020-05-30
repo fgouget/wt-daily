@@ -1071,8 +1071,11 @@ wt_init()
         error "This Linux distribution is not supported."
         exit 1
     fi
-
     ${wt_platform}_init
+}
+
+wt_pre_install()
+{
     if [ -n "$opt_packages" ]
     then
         [ "$opt_wine" = "1" ] && ${wt_platform}_wine
@@ -1143,6 +1146,7 @@ then
     opt_dry_run=""
     wt_parse_cmdline "$@"
     wt_init
+    wt_pre_install
     wt_install
     wt_post_install
     wt_epilogue
