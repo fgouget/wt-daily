@@ -763,42 +763,49 @@ zypper_wine()
     zypper_multi dbus-1-devel
 
     zypper_multi FAudio-devel
-    zypper_multi libFAudio0 # Missing dependency in -devel-32bit
+    # Missing dependencies in -devel-32bit from Emulators:Wine (bug 1172309)
+    zypper_multi libFAudio0
 
     zypper_multi fontconfig-devel
-    zypper_multi fontconfig # Missing dependency in -devel-32bit
+    # Missing dependencies in -devel-32bit on openSUSE Leap 15.1 (bug 1172301)
+    zypper_multi fontconfig
 
     zypper_multi freetype2-devel
     zypper_multi glibc-devel
     zypper_multi glu-devel
 
+    # Missing -devel-32bit package in openSUSE Leap 15.1 (bug 1172304)
     # Installing the 32-bit glib2-devel allows working around
     # the missing gstreamer-devel-32bit package.
     zypper_multi gstreamer-devel || zypper_multi glib2-devel
     zypper_multi gstreamer-plugins-base-devel
 
     zypper_multi krb5-devel
-    zypper_multi libcom_err-devel # Missing dependency in -devel-32bit
+    # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
+    zypper_multi libcom_err-devel
 
     zypper_multi libgnutls-devel
 
     zypper_multi libgphoto2-devel
-    zypper_multi libgphoto2-6 # Missing dependency in -devel-32bit
-    zypper_multi libexif-devel # Missing dependency in -devel-32bit
+    # Missing dependencies in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
+    zypper_multi libgphoto2-6
+    zypper_multi libexif-devel
 
     zypper_multi libgsm-devel
     zypper_multi libjpeg8-devel
     zypper_multi liblcms2-devel
 
     zypper_multi libnetapi-devel
-    zypper_multi libnetapi0 # Workaround the missing -devel-32bit package
+    # Workaround the missing -devel-32bit package in openSUSE Leap 15.1 (bug 1172307)
+    zypper_multi libnetapi0
 
     zypper_multi libOSMesa-devel
     zypper_multi libpcap-devel
     zypper_multi libpng16-compat-devel
 
     zypper_multi libpulse-devel
-    zypper_multi libpulse0 # Missing dependency in -devel-32bit
+    # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
+    zypper_multi libpulse0
 
     zypper_multi libSDL2-devel
     zypper_multi libtiff-devel
@@ -809,7 +816,8 @@ zypper_wine()
     zypper_multi libusb-1_0-devel
 
     zypper_multi libv4l-devel
-    zypper_multi libv4l2-0 # Missing dependency in -devel-32bit
+    # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
+    zypper_multi libv4l2-0
 
     zypper_multi libX11-devel
     zypper_multi libXcomposite-devel
@@ -825,22 +833,26 @@ zypper_wine()
     zypper_multi libxslt-devel
 
     zypper_multi Mesa-libGL-devel
-    zypper_multi Mesa-libGL1 # Workaround for the missing -devel-32bit package
+    # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172302)
+    zypper_multi Mesa-libGL1
 
     zypper_multi mpg123-devel
     zypper_multi ncurses-devel
 
     zypper_pkg   opencl-headers
+    # Missing -32bit packages in openSUSE Leap 15.1 (bug 1172303)
     zypper_multi ocl-icd-devel
     zypper_multi libOpenCL1 # For the epilogue diagnostic
 
     zypper_multi openal-soft-devel
-    zypper_multi libopenal1 # Missing dependency in -devel-32bit
+    # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
+    zypper_multi libopenal1
 
     zypper_multi openldap2-devel
 
     zypper_multi sane-backends-devel
-    zypper_multi sane-backends # Missing dependency in -devel-32bit
+    # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
+    zypper_multi sane-backends
 
     # unixODBC-devel only contains the headers and pkg-config files while
     # the .so symlinks are in unixODBC and unixODBC-32bit. While totally non
@@ -849,10 +861,12 @@ zypper_wine()
     zypper_multi unixODBC
 
     zypper_multi vkd3d-devel
-    zypper_multi libvkd3d1 # Missing dependency in -devel-32bit
+    # Missing dependencies in -devel-32bit from home:dimesio (bug 1172310)
+    zypper_multi libvkd3d1
 
     zypper_multi vulkan-devel
-    zypper_multi libvulkan1 # Missing dependency in -devel-32bit
+    # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
+    zypper_multi libvulkan1
 
     zypper_multi zlib-devel
 }
