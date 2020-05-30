@@ -555,7 +555,7 @@ then
         $compress compress "$opt_image"
     if [ $? -ne 0 ]
     then
-        error "an error ocurred while compressing to '$opt_image'"
+        error "an error occurred while compressing to '$opt_image'"
         rm -f "$rcfile"
         exit 1
     fi
