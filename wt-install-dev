@@ -901,7 +901,8 @@ zypper_wine()
 
     zypper_multi sane-backends-devel
     # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
-    zypper_multi sane-backends
+    zypper_multi sane-backends || # openSUSE Leap 15.1
+        zypper_multi libsane1     # openSUSE Tumbleweed
 
     # unixODBC-devel only contains the headers and pkg-config files while
     # the .so symlinks are in unixODBC and unixODBC-32bit. While totally non
@@ -958,11 +959,19 @@ zypper_workarounds()
         wt_create_sos gstreamer-devel-32bit libgstbase-1.0 libgstreamer-1.0
         wt_create_sos libnetapi-devel-32bit libnetapi
         wt_create_sos Mesa-libGL-devel-32bit libGL
+        wt_create_sos vulkan-devel-32bit libvulkan
     fi
 }
 
 zypper_epilogue()
 {
+    if wt_explain_bad_pkg "capi4linux-devel"
+    then
+        echo "* Support for libcapi20 has been removed in Tumbleweed. This only impacts"
+        echo "  the rare Windows applications that would use ISDN phone lines."
+        echo "  https://wiki.winehq.org/Building_Wine#Satisfying_Build_Dependencies"
+        echo
+    fi
     if wt_explain_bad_pkg "FAudio-devel"
     then
         echo "* FAudio-devel is available through the Emulators:Wine project on the OBS."
@@ -1111,7 +1120,7 @@ wt_parse_cmdline()
         echo "  --wine --extra --no-tests --no-wt-daily --packages --workarounds"
         echo "Tested on:"
         echo "  Debian 9 & 10, Linux Mint 19.03, Ubuntu 18.04 & 19.10."
-        echo "  openSUSE Leap 15.1."
+        echo "  openSUSE Leap 15.1, Tumbleweed (2020-05)."
         echo
 
         echo "Where:"
