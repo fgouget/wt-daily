@@ -35,7 +35,7 @@ dry_run()
     [ -z "$opt_dry_run" ] || return 0
     "$@"
     rc=$?
-    [ $rc -ne 0 -a -n "$opt_dry_run" ] && echo " -> rc=$rc" >&2
+    [ $rc -ne 0 ] && echo "$1 -> rc=$rc"
     return $rc
 }
 
