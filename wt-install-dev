@@ -124,12 +124,12 @@ wt_create_so()
 
             if [ -z "$sover" ]
             then
-                error "Could not find the ...$libdir/$sodev.so symlink target"
+                error "could not find the ...$libdir/$sodev.so symlink target"
                 rc=2
             # Use -f because $sodev.so may be a broken symlink
             elif ! dry_run ln -s -f "$sover" "$usrlibdir/$sodev.so"
             then
-                error "Could not create the ...$libdir/$sodev.so symlink"
+                error "could not create the ...$libdir/$sodev.so symlink"
                 rc=2
             elif [ $rc -eq 0 ]
             then
@@ -391,7 +391,7 @@ apt_init()
 {
     if [ `dpkg --print-architecture` != "amd64" ]
     then
-        error "Expected a 64-bit Debian distribution"
+        error "expected a 64-bit Debian distribution"
         exit 1
     fi
     if [ "$opt_packages" = "1" ]
@@ -772,7 +772,7 @@ zypper_init()
     local refresh
     if [ `arch` != "x86_64" ]
     then
-        error "Expected a 64-bit openSUSE distribution"
+        error "expected a 64-bit openSUSE distribution"
         exit 1
     fi
 
@@ -1163,7 +1163,7 @@ wt_init()
     then
         wt_platform="zypper"
     else
-        error "This Linux distribution is not supported."
+        error "this Linux distribution is not supported."
         exit 1
     fi
     ${wt_platform}_init
