@@ -32,7 +32,7 @@ dry_run()
 {
     local rc
     echo "$@"
-    [ -z "$opt_dry_run" ] || return 0
+    [ "$opt_dry_run" = "1" ] && return 0
     "$@"
     rc=$?
     [ $rc -ne 0 ] && echo "$1 -> rc=$rc"
@@ -137,7 +137,7 @@ wt_create_so()
     then
         wt_create_so_warn=
         warning "The symlink creation will fail if the non-dev package is not installed."
-        [ -n "$opt_dry_run" ] && warning "This is particularly likely with --dry-run."
+        [ "$opt_dry_run" = "1" ] && warning "This is particularly likely with --dry-run."
     fi
     return $rc
 }
@@ -390,7 +390,7 @@ apt_init()
         error "Expected a 64-bit Debian distribution"
         exit 1
     fi
-    if [ -n "$opt_packages" ]
+    if [ "$opt_packages" = "1" ]
     then
         dry_run dpkg --add-architecture i386
         dry_run apt-get update
@@ -602,7 +602,7 @@ apt_epilogue()
         echo "  Debian 10 which may provide a viable workaround."
         echo
     fi
-    if [ "$opt_wine" = "1" -a -n "$opt_packages" ]
+    if [ "$opt_wine" = "1" -a "$opt_packages" = "1" ]
     then
         echo "* HAL is known not to be available but is obsolete anyway."
         echo
@@ -973,7 +973,7 @@ zypper_epilogue()
         echo "  https://wiki.winehq.org/OpenSUSE#Build_Tools_and_Dependencies"
         echo
     fi
-    if [ "$opt_wine" = "1" -a -n "$opt_packages" ]
+    if [ "$opt_wine" = "1" -a "$opt_packages" = "1" ]
     then
         echo "* HAL and OSS4 are known not to be available but are obsolete anyway."
         echo
@@ -1137,7 +1137,7 @@ wt_init()
 
 wt_pre_install()
 {
-    if [ -n "$opt_packages" ]
+    if [ "$opt_packages" = "1" ]
     then
         [ "$opt_wine" = "1" ] && ${wt_platform}_wine
         [ "$opt_wine_extra" = "1" ] && ${wt_platform}_wine_extra
@@ -1148,12 +1148,12 @@ wt_pre_install()
 
 wt_install()
 {
-    [ -n "$opt_packages" ] && ${wt_platform}_install
+    [ "$opt_packages" = "1" ] && ${wt_platform}_install
 }
 
 wt_post_install()
 {
-    [ -n "$opt_workarounds" ] && ${wt_platform}_workarounds
+    [ "$opt_workarounds" = "1" ] && ${wt_platform}_workarounds
 }
 
 wt_epilogue()
