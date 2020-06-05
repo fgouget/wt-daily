@@ -192,7 +192,7 @@ apt_check()
     local action="$1"
     local pkg="$2"
     shift 2
-    LANG= apt-cache "$action" "$pkg" 2>/dev/null | egrep -q "$@"
+    LANG= apt-cache "$action" "$pkg" 2>/dev/null | grep -q "$@"
 }
 
 # apt_addsection <landmark> <section> <packages>
@@ -497,7 +497,7 @@ apt_wine()
     apt_pkg    prelink
 
     # For libnetapi (see bug 961867)
-    apt_check depends samba-libs:i386 'Depends: python3?-talloc:i386'
+    apt_check depends samba-libs:i386 -E 'Depends: python3?-talloc:i386'
     apt_multi --if-not-0 $? samba-dev
 
     apt_multi unixodbc-dev || apt_multi libodbc1
