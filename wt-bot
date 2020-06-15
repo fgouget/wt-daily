@@ -811,6 +811,7 @@ then
         # Tell winedbg not to bring up the crash dialog as that causes
         # everything to stop until a timeout kicks in.
         ./wine "reg.exe" ADD "HKCU\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f
+        rc=$?
 
         if [ -n "$opt_new_wineprefix" ]
         then
@@ -818,7 +819,7 @@ then
             #       created *before* starting winetest.exe.
             ./server/wineserver -w
         fi
-        [ -n "$opt_winetest" ] || return
+        [ -n "$opt_winetest" ] || return $rc
 
         [ -n "$opt_testexe" ] || opt_testexe="winetest.exe"
         set -x
