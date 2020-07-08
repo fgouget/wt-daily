@@ -369,9 +369,8 @@ apt_install()
     if [ -z "$opt_dry_run" ]
     then
         echo -n "Waiting for the dpkg lock"
-        while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ||
-              fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ||
-              fuser /var/run/unattended-upgrades.lock >/dev/null 2>&1
+        while fuser /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend \
+                    /var/run/unattended-upgrades.lock >/dev/null 2>&1
         do
             echo -n "."
             sleep 1
