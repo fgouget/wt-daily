@@ -377,7 +377,7 @@ apt_install()
         done
         echo " done"
     fi
-    dry_run apt install $opt_yes `wt_pretty_list "$pkginstall"` || exit 1
+    dry_run apt-get install $opt_yes `wt_pretty_list "$pkginstall"` || exit 1
     echo
 }
 
