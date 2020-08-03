@@ -679,6 +679,8 @@ zypper_get_packages()
     fi
 }
 
+zypper_newrepos=""
+
 # zypper_addrepo <landmark> <project> <packages>
 #
 # Checks if the <landmark> package is available and returns immediately if it
@@ -717,7 +719,15 @@ zypper_addrepo()
     fi
     [ -z "$a" -o "$a" = "y" -o "$a" = "Y" ] || return 1
 
-    dry_run zypper addrepo "$url"
+    options="--refresh"
+    if [ -n "$opt_yes" ]
+    then
+        # Disable GPG checks to avoid the new GPG key question during refresh.
+        # Also disable auto-refresh to limit future usage.
+        options="--no-gpgcheck"
+    fi
+    dry_run zypper addrepo $options "$url"
+    zypper_newrepos="$zypper_newrepos "$(echo "$project" | sed -e 's/:/_/g')
 }
 
 # zypper_pkg <pkg1> ...
@@ -804,7 +814,7 @@ zypper_wine()
     zypper_addrepo vkd3d-devel home:dimesio "the vkd3d packages" && refresh=1
     if [ -n "$refresh" ]
     then
-        dry_run zypper refresh $opt_yes
+        dry_run zypper refresh
         # Force reloading the package list
         zypper_packages=""
     fi
@@ -1044,6 +1054,17 @@ zypper_epilogue()
     then
         echo "* vkd3d is only available through the home:dimesio project on the OBS."
         echo "  https://build.opensuse.org/project/show/home:dimesio"
+        echo
+    fi
+    if [ -n "$opt_yes" -a -n "$zypper_newrepos" ]
+    then
+        echo "* Because of the --yes option the GPG checks had to be disabled for the"
+        echo "  new repositories below. You may want to remove them or manually reenable"
+        echo "  GPG checking and auto-refresh."
+        for repo in $zypper_newrepos
+        do
+            echo "    zypper modifyrepo --gpgcheck --refresh $repo"
+        done
         echo
     fi
 }
