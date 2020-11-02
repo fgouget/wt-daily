@@ -440,7 +440,7 @@ apt_wine()
     apt_multi liblcms2-dev
     apt_multi libldap2-dev
     apt_multi libmpg123-dev
-    apt_multi libncurses5-dev
+    apt_multi libncurses5-dev # Not used since Wine 26c715f85b49 (2020-09-22)
 
     # The GStreamer development package can only be installed if the liborc
     # one supports multiarch
@@ -910,7 +910,7 @@ zypper_wine()
     zypper_multi Mesa-libGL1
 
     zypper_multi mpg123-devel
-    zypper_multi ncurses-devel
+    zypper_multi ncurses-devel # Not used since Wine 26c715f85b49 (2020-09-22)
 
     zypper_pkg   opencl-headers
     # Missing -32bit packages in openSUSE Leap 15.1 (bug 1172303)
