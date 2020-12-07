@@ -884,7 +884,7 @@ then
         count=`expr $count + 1`
         if [ $count -eq 30 ]  # 5 minutes
         then
-            last=`egrep -a '^(Extracting|Running)' "$logbase.log" | tail -1`
+            last=`egrep -a '^(Extracting|Running):' "$logbase.log" | tail -1`
             if [ "$progress" = "$last" ]
             then
                 echo
