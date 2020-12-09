@@ -195,7 +195,7 @@ fi
 
 # Allow pre-pausing but not pre-canceling
 run=`cat "$test_root/run" 2>/dev/null`
-[ "$run" != "cancel" ] || rm -f "$test_root/run"
+[ "$run" = "cancel" ] && rm -f "$test_root/run"
 
 
 #####
