@@ -538,6 +538,20 @@ apt_wine_tests()
     apt_pkg winbind   # For ntlm_auth
 }
 
+apt_wine_locales()
+{
+    # Install fonts for the locale tests
+    # Use Debian's task-* packages, which includes the task-<locale>* ones
+    # that install the fonts relevant to that locale.
+    # Also install the fonts for mlterm, the multi-lingual terminal emulator.
+    local tasks="$(apt-cache search '^task-' | cut -f1 -d' ')"
+    local font_pkg=""
+    for font_pkg in $(LANG= apt-cache depends $tasks mlterm | sed -e 's/^ *Recommends: fonts-/fonts-/' -e t -e d | sort -u)
+    do
+        apt_pkg "$font_pkg"
+    done
+}
+
 apt_wt_daily()
 {
     apt_pkg ntfs-3g
@@ -973,6 +987,16 @@ zypper_wine_tests()
     zypper_pkg samba-winbind   # For ntlm_auth
 }
 
+zypper_wine_locales()
+{
+    # Install fonts for the locale tests (mirrored from the Debian list)
+    zypper_pkg baekmuk-ttf-fonts
+    zypper_pkg dejavu-fonts
+    zypper_pkg khmeros-fonts
+    zypper_pkg noto-sans-fonts
+    zypper_pkg noto-coloremoji-fonts
+}
+
 zypper_wt_daily()
 {
     zypper_pkg ntfs-3g
@@ -1097,11 +1121,14 @@ wt_parse_cmdline()
         --no-extra)   opt_wine_extra="0" ;;
         --tests)      opt_wine_tests="1" ;;
         --no-tests)   opt_wine_tests="0" ;;
+        --locales)    opt_wine_locales="1" ;;
+        --no-locales) opt_wine_locales="0" ;;
         --wt-daily)   opt_wt_daily="1" ;;
         --no-wt-daily) opt_wt_daily="0" ;;
         --all)        opt_wine="1"
                       opt_wine_extra="1"
                       opt_wine_tests="1"
+                      opt_wine_locales="1"
                       opt_wt_daily="1"
                       ;;
         --packages)   opt_packages="1" ;;
@@ -1152,13 +1179,13 @@ wt_parse_cmdline()
 
     if [ "$usage" = "0" ]
     then
-        echo "Usage: $name0 [--no-wine] [--no-extra] [--tests] [--wt-daily] [--packages] [--workarounds] [--yes] [--cmd-log SCRIPT] [--dry-run] [--help]"
+        echo "Usage: $name0 [--no-wine] [--no-extra] [--tests] [--locales] [--wt-daily] [--packages] [--workarounds] [--yes] [--cmd-log SCRIPT] [--dry-run] [--help]"
         echo
 
         echo "Installs the packages needed to build the 32- and 64-bit versions of Wine. When possible applies workarounds if installing both the 32- and 64-bit development packages is impossible. Can also install some extra packages needed by the tests and the wt-daily scripts."
         echo
         echo "Default options:"
-        echo "  --wine --extra --no-tests --no-wt-daily --packages --workarounds"
+        echo "  --wine --extra --no-tests --no-locales --no-wt-daily --packages --workarounds"
         echo "Tested on:"
         echo "  Debian 9 & 10, Linux Mint 19.03, Ubuntu 18.04 & 19.10."
         echo "  openSUSE Leap 15.1, Tumbleweed (2020-05)."
@@ -1169,8 +1196,9 @@ wt_parse_cmdline()
         echo "  --no-extra   Only install the packages needed to compile Wine, not those"
         echo "               needed to regenerate part of its source (autoconf, etc)."
         echo "  --tests      Install some packages needed to run the Wine tests."
+        echo "  --locales    Install packages needed to test Wine in most locales."
         echo "  --wt-daily   Install the packages needed for the wt-daily scripts."
-        echo "  --all        Same as --wine --extra --tests --wt-daily."
+        echo "  --all        Same as --wine --extra --tests --locales --wt-daily."
         echo "  --packages   Install the packages."
         echo "  --workarounds Apply workarounds for packages that don't support multiarch so"
         echo "               that both the 32- and 64-bit versions of Wine can be built."
@@ -1193,6 +1221,7 @@ wt_build_cmdargs()
     [ "$opt_wine" = "1" ] && wt_cmdargs="$wt_cmdargs --wine"
     [ "$opt_wine_extra" = "1" ] && wt_cmdargs="$wt_cmdargs --extra"
     [ "$opt_wine_tests" = "1" ] && wt_cmdargs="$wt_cmdargs --tests"
+    [ "$opt_wine_locales" = "1" ] && wt_cmdargs="$wt_cmdargs --locales"
     [ "$opt_wt_daily" = "1" ] && wt_cmdargs="$wt_cmdargs --wt-daily"
     [ "$opt_packages" = "1" ] && wt_cmdargs="$wt_cmdargs --packages"
     [ "$opt_workarounds" = "1" ] && wt_cmdargs="$wt_cmdargs --workarounds"
@@ -1252,6 +1281,7 @@ wt_pre_install()
         [ "$opt_wine" = "1" ] && ${wt_platform}_wine
         [ "$opt_wine_extra" = "1" ] && ${wt_platform}_wine_extra
         [ "$opt_wine_tests" = "1" ] && ${wt_platform}_wine_tests
+        [ "$opt_wine_locales" = "1" ] && ${wt_platform}_wine_locales
         [ "$opt_wt_daily" = "1" ] && ${wt_platform}_wt_daily
     fi
 }
@@ -1310,6 +1340,7 @@ then
     opt_wine=""
     opt_wine_extra=""
     opt_wine_tests=""
+    opt_wine_locales=""
     opt_wt_daily=""
     opt_packages=""
     opt_workarounds=""
