@@ -89,11 +89,17 @@ interruptible_wait()
 
 # Use run() to ensure the specified command will be terminated even if the
 # shell is killed.
+#
+# WARNING:
+#   This overwrites the INT and TERM traps so it may be necessary to
+#   re-set them after calling run() !!!
+#   By default they are reset to their default handler.
 run()
 {
     trap kill_children INT TERM
     "$@" &
     interruptible_wait $!
+    trap - INT TERM
 }
 
 do_pause()
@@ -503,6 +509,8 @@ select_otheros()
             then
                 echo "$image" >"$otheros_file"
                 break
+            # Note: select_otheros() is only called in a subshell
+            # -> no trap here (see run())
             elif run "$dir0/wt-ask" "Run the tests on '$image'?"
             then
                 echo "$image" >"$otheros_file"
@@ -566,7 +574,8 @@ ready_lock="$test_root/$name0.ready"
     # flock does not propagate signals to its child process
     # so run the sleep command ourselves.
     "$flock" 3
-     run sleep 86400
+    run sleep 86400
+    # traps don't matter anymore (see run())
 } 3>"$ready_lock" &
 ready_pid=$!
 
@@ -574,6 +583,7 @@ pre_interactive_lock="$test_root/$name0.interactive"
 {
     "$flock" 3
     run sleep 86401
+    # traps don't matter anymore (see run())
 } 3>"$pre_interactive_lock" &
 pre_interactive_pid=$!
 # Give enough time for the above tasks to take their respective locks
@@ -592,6 +602,7 @@ sleep 1
             # to run.
             run "$dir0/wt-ask" "Automatically run the tests?" && \
                 echo "auto" >"$storage"
+            # traps don't matter anymore (see run())
         } &
         ask_auto_pid=$!
         {
@@ -610,6 +621,7 @@ sleep 1
             # This question blocks the tests until answered.
             run "$dir0/wt-ask" "Run the tests now?" || \
                 "$dir0/$name0" --cancel
+            # subshell -> no trap here (see run())
         fi
     fi
 
