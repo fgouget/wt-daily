@@ -99,7 +99,9 @@ run()
     trap kill_children INT TERM
     "$@" &
     interruptible_wait $!
+    rc=$?
     trap - INT TERM
+    return $rc
 }
 
 do_pause()
