@@ -509,6 +509,7 @@ apt_wine()
 apt_wine_extra()
 {
     apt_pkg autoconf
+    apt_pkg libxml-libxml-perl # For make_opengl
     apt_pkg python3   # For make_vulkan
     apt_pkg unzip     # For make_unicode
     apt_pkg wget      # For make_unicode, make_opengl
@@ -965,6 +966,7 @@ zypper_wine()
 zypper_wine_extra()
 {
     zypper_pkg autoconf
+    zypper_pkg perl-XML-LibXML # For make_opengl
     zypper_pkg python3   # For make_vulkan
     zypper_pkg unzip     # For make_unicode
     zypper_pkg wget      # For make_unicode, make_opengl
