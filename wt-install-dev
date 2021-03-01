@@ -439,6 +439,7 @@ apt_wine()
     apt_multi --if-0 $? libgnutls28-dev || apt_multi libgnutls30
 
     apt_multi libjpeg62-turbo-dev libjpeg-turbo8-dev
+    apt_multi libjxr-dev
     apt_multi libkrb5-dev
     apt_multi liblcms2-dev
     apt_multi libldap2-dev
@@ -879,6 +880,12 @@ zypper_wine()
     zypper_multi gstreamer-devel || zypper_multi glib2-devel
     zypper_multi gstreamer-plugins-base-devel
 
+    zypper_multi jxrlib-devel
+    # Missing dependencies in -devel-32bit on openSUSE Tumbleweed (bug 1183053)
+    zypper_multi libjpegxr0
+    # Missing -32bit package in openSUSE Tumbleweed (bug 1183052)
+    zypper_multi libjxrglue0
+
     zypper_multi krb5-devel
     # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
     zypper_multi libcom_err-devel
@@ -1055,6 +1062,12 @@ zypper_epilogue()
         echo "  overcome this hurdle:"
         echo "  https://bugzilla.opensuse.org/show_bug.cgi?id=973217"
         echo "  https://wiki.winehq.org/OpenSUSE#Build_Tools_and_Dependencies"
+        echo
+    fi
+    if wt_explain_bad_pkg "jxrlib-32bit"
+    then
+        echo "* Both jxrlib-devel-32bit and jxrlib-32bit are missing so there is no"
+        echo "  32-bit support at all for JPEG XR images. Try a newer distributution release."
         echo
     fi
     if [ "$opt_wine" = "1" -a "$opt_packages" = "1" ]
