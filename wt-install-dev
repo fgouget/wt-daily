@@ -406,11 +406,13 @@ apt_init()
 
 apt_wine()
 {
+    # Tools
     apt_pkg   bison
     apt_pkg   flex
     apt_pkg   gcc
     apt_pkg   gcc-mingw-w64
     apt_pkg   gcc-multilib
+    apt_pkg   gettext
     apt_pkg   git
     apt_multi libasound2-dev
     apt_multi libcapi20-dev
@@ -866,6 +868,7 @@ zypper_wine()
     zypper_pkg   bison
     zypper_pkg   flex
     zypper_multi gcc
+    zypper_pkg   gettext-runtime
     zypper_pkg   git
     zypper_pkg   make
     zypper_pkg   mingw32-cross-gcc
