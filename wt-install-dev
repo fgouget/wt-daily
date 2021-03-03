@@ -559,6 +559,11 @@ apt_wt_daily()
     apt_pkg time
 }
 
+apt_tb_wine()
+{
+    apt_pkg upx-ucl
+}
+
 apt_workarounds()
 {
     local xsltconfig
@@ -1005,6 +1010,11 @@ zypper_wt_daily()
     zypper_pkg time
 }
 
+zypper_tb_wine()
+{
+    true # upx-ucl is not available
+}
+
 zypper_workarounds()
 {
     if [ "$opt_wine" = "1" ]
@@ -1127,11 +1137,14 @@ wt_parse_cmdline()
         --no-locales) opt_wine_locales="0" ;;
         --wt-daily)   opt_wt_daily="1" ;;
         --no-wt-daily) opt_wt_daily="0" ;;
+        --tb-wine)    opt_tb_wine="1" ;;
+        --no-tb-wine) opt_tb_wine="0" ;;
         --all)        opt_wine="1"
                       opt_wine_extra="1"
                       opt_wine_tests="1"
                       opt_wine_locales="1"
                       opt_wt_daily="1"
+                      opt_tb_wine="1"
                       ;;
         --packages)   opt_packages="1" ;;
         --workarounds) opt_workarounds="1" ;;
@@ -1166,7 +1179,7 @@ wt_parse_cmdline()
 
     if [ -z "$usage" ]
     then
-        if [ -z "$opt_wine$opt_wine_extra$opt_wine_tests$opt_locales$opt_wt_daily" ]
+        if [ -z "$opt_wine$opt_wine_extra$opt_wine_tests$opt_locales$opt_wt_daily$opt_tb_wine" ]
         then
             opt_wine="1"
             opt_wine_extra="1"
@@ -1180,13 +1193,13 @@ wt_parse_cmdline()
 
     if [ "$usage" = "0" ]
     then
-        echo "Usage: $name0 [--no-wine] [--no-extra] [--tests] [--locales] [--wt-daily] [--packages] [--workarounds] [--yes] [--cmd-log SCRIPT] [--dry-run] [--help]"
+        echo "Usage: $name0 [--no-wine] [--no-extra] [--tests] [--locales] [--wt-daily] [--tb-wine] [--packages] [--workarounds] [--yes] [--cmd-log SCRIPT] [--dry-run] [--help]"
         echo
 
         echo "Installs the packages needed to build the 32- and 64-bit versions of Wine. When possible applies workarounds if installing both the 32- and 64-bit development packages is impossible. Can also install some extra packages needed by the tests and the wt-daily scripts."
         echo
         echo "Default options:"
-        echo "  --wine --extra --no-tests --no-locales --no-wt-daily --packages --workarounds"
+        echo "  --wine --extra --no-tests --no-locales --no-wt-daily --no-tb-wine --packages --workarounds"
         echo "Tested on:"
         echo "  Debian 9 & 10, Linux Mint 19.03, Ubuntu 18.04 & 19.10."
         echo "  openSUSE Leap 15.1, Tumbleweed (2020-05)."
@@ -1199,7 +1212,8 @@ wt_parse_cmdline()
         echo "  --tests      Install some packages needed to run the Wine tests."
         echo "  --locales    Install packages needed to test Wine in most locales."
         echo "  --wt-daily   Install the packages needed for the wt-daily scripts."
-        echo "  --all        Same as --wine --extra --tests --locales --wt-daily."
+        echo "  --tb-wine    Install the packages needed for the TestBot's wine VMs."
+        echo "  --all        Same as --wine --extra --tests --locales --wt-daily --tb-wine."
         echo "  --packages   Install the packages."
         echo "  --workarounds Apply workarounds for packages that don't support multiarch so"
         echo "               that both the 32- and 64-bit versions of Wine can be built."
@@ -1224,6 +1238,7 @@ wt_build_cmdargs()
     [ "$opt_wine_tests" = "1" ] && wt_cmdargs="$wt_cmdargs --tests"
     [ "$opt_wine_locales" = "1" ] && wt_cmdargs="$wt_cmdargs --locales"
     [ "$opt_wt_daily" = "1" ] && wt_cmdargs="$wt_cmdargs --wt-daily"
+    [ "$opt_tb_wine" = "1" ] && wt_cmdargs="$wt_cmdargs --tb-wine"
     [ "$opt_packages" = "1" ] && wt_cmdargs="$wt_cmdargs --packages"
     [ "$opt_workarounds" = "1" ] && wt_cmdargs="$wt_cmdargs --workarounds"
     [ "$opt_yes" = "1" ] && wt_cmdargs="$wt_cmdargs --yes"
@@ -1284,6 +1299,7 @@ wt_pre_install()
         [ "$opt_wine_tests" = "1" ] && ${wt_platform}_wine_tests
         [ "$opt_wine_locales" = "1" ] && ${wt_platform}_wine_locales
         [ "$opt_wt_daily" = "1" ] && ${wt_platform}_wt_daily
+        [ "$opt_tb_wine" = "1" ] && ${wt_platform}_tb_wine
     fi
 }
 
@@ -1343,6 +1359,7 @@ then
     opt_wine_tests=""
     opt_wine_locales=""
     opt_wt_daily=""
+    opt_tb_wine=""
     opt_packages=""
     opt_workarounds=""
     opt_yes=""
