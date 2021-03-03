@@ -1166,11 +1166,10 @@ wt_parse_cmdline()
 
     if [ -z "$usage" ]
     then
-        if [ -z "$opt_wine$opt_wine_extra$opt_wine_tests$opt_wt_daily" ]
+        if [ -z "$opt_wine$opt_wine_extra$opt_wine_tests$opt_locales$opt_wt_daily" ]
         then
             opt_wine="1"
             opt_wine_extra="1"
-            opt_wt_daily="0"
         fi
         if [ -z "$opt_packages$opt_workarounds" ]
         then
