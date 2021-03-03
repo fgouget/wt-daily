@@ -480,7 +480,14 @@ apt_wine()
     apt_pkg   libunwind-dev # Wine only needs the 64-bit library
     apt_multi libusb-1.0-0-dev
     apt_multi libv4l-dev
-    apt_multi libvkd3d-dev
+
+    # Before 1.2 vkd3d is missing libvkd3d-shader1 which is required for Wine.
+    if apt_pkg libvkd3d-shader1
+    then
+        # But multiarch support is broken in 1.2-3 (see bug 983776)
+        apt_blacklist libvkd3d-dev 1.2-3 libvkd3d-dev libvkd3d1
+    fi
+
     apt_multi libvulkan-dev
     apt_multi libx11-dev
     apt_multi libxcb1-dev
@@ -576,6 +583,9 @@ apt_workarounds()
     then
         # Work around the missing or broken multiarch support where possible
 
+        # Needed for all Debian versions so far
+        wt_create_sos libvkd3d-dev libvkd3d libvkd3d-shader libvkd3d-utils
+
         # Needed for Debian 10
         wt_create_sos libsdl2-dev libSDL2-2.0 # Broken up to 2.0.9
         wt_create_so libSDL2 libSDL2-2.0
@@ -658,9 +668,15 @@ apt_epilogue()
         echo "  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=961867"
         echo
     fi
-    if wt_explain_bad_pkg "vkd3d-dev"
+    if wt_explain_bad_pkg "libvkd3d-shader1"
     then
-        echo "* vkd3d is only available on distributions derived from Debian 10+."
+        echo "* Wine needs a vkd3d >= 1.2 package (see experimental?)."
+        echo
+    elif wt_explain_bad_pkg "libvkd3d-dev:i386"
+    then
+        echo "* libvkd3d-dev 1.2-3 claims to support multiarch but ships a conflicting file "
+        echo "  (vkd3d-compiler)."
+        echo "  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=983776"
         echo
     fi
 }
