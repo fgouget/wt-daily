@@ -467,6 +467,8 @@ apt_wine()
     # On Debian 9 libsane-dev claims to support multiarch but is broken
     apt_blacklist libsane-dev 1.0.25-4.1 libsane-dev libsane
 
+    apt_pkg libsasl2-dev # One arch is sufficient for Wine
+
     # On Ubuntu 18.04 libsdl2-dev depends on libmirclient-dev which breaks
     # without warning in a multiarch configuration!
     apt_blacklist libmirclient-dev 0.31.1-0ubuntu1 libsdl2-dev libsdl2-2.0-0
@@ -880,6 +882,7 @@ zypper_wine()
     zypper_multi alsa-devel
     zypper_multi capi4linux-devel
     zypper_multi cups-devel
+    zypper_multi cyrus-sasl-dev
     zypper_multi dbus-1-devel
 
     zypper_multi FAudio-devel
