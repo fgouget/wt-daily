@@ -95,7 +95,7 @@ set /A netwait=netwait*2
 REM Remember to disable the anti-virus and any other
 REM application that may interfere with the tests.
 REM *** Now is you chance to abort the tests ***
-ping -n 31 127.0.0.1 >nul
+ping -n 61 127.0.0.1 >nul
 
 REM Wait until the network is up.
 ping -n 1 test.winehq.org
@@ -132,6 +132,7 @@ goto download64
 
 
 :run32
+ping -n 61 127.0.0.1 >nul
 REM Run the 32-bit tests and store the report locally
 if "%tag32%" == "" goto run64
 if NOT "%exclude32%" == "" set exclude32=-n %exclude32%
