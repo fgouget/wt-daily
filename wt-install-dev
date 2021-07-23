@@ -563,9 +563,23 @@ apt_wine_locales()
     # Also install the fonts for mlterm, the multi-lingual terminal emulator.
     local tasks="$(apt-cache search '^task-' | cut -f1 -d' ')"
     local font_pkg=""
+    local extra_pkg=""
     for font_pkg in $(LANG= apt-cache depends $tasks mlterm | sed -e 's/^ *Recommends: fonts-/fonts-/' -e t -e d | sort -u)
     do
         apt_pkg "$font_pkg"
+        case "$font_pkg" in
+        fonts-noto*)
+            # Avoid the fonts-noto-*-extra packages as they cause excessive
+            # Wine slowdowns (see bug 51367).
+            for extra_pkg in $(LANG= apt-cache depends "$font_pkg" | sed -e 's/^ *Recommends: \(fonts-noto.*-extra\)$/\1/' -e t -e d | sort -u)
+            do
+                if dpkg -l "$extra_pkg" | egrep -q '^[^hrp]n'
+                then
+                    apt-mark hold "$extra_pkg"
+                fi
+            done
+            ;;
+        esac
     done
 }
 
