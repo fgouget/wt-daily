@@ -95,6 +95,13 @@ default_options=""
 #
 #####
 
+# Use this hook to trace the wt-daily actions.
+# The arguments are a message describing the action wt-daily is starting.
+trace()
+{
+    return
+}
+
 # Use this to extend wt-daily with extra command line options.
 # The option under consideration is passed as the first argument and
 # is_extra_option() should return 0 if it is valid, 1 otherwise.

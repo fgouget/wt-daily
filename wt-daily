@@ -447,6 +447,7 @@ then
 fi
 
 (
+    run_ext trace "Waiting for $name0.lock"
     "$flock" 3
     pid=`cat "$test_root/$name0.pid" 2>/dev/null`
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
@@ -467,6 +468,7 @@ abort()
 }
 
 trap abort INT TERM EXIT
+run_ext trace "Starting $name0"
 
 
 #####
@@ -539,9 +541,11 @@ restore_otheros()
     fi
 
     echo "Preparing to run the tests on '$image'..."
+    run_ext trace "Restoring" `basename "$image"`
     if dry_run $time $nice sudo "$image" --restore && \
         dry_run $nice sudo "$image" --grub
     then
+        run_ext trace "Restored" `basename "$image"`
         return 0
     fi
 
@@ -729,6 +733,7 @@ then
     then
         do_pause
         echo "$hostname - 32-bit Build"
+        run_ext trace "32-bit Build"
         [ -d "$test_root/wine" ] || mkdir "$test_root/wine"
         dry_run $time $nice "$dir0/wt-bot" --dir "$test_root/wine" --build --build-retry
         if [ $? -ne 0 ]
@@ -744,6 +749,7 @@ then
         do_pause
         echo
         echo "$hostname - WoW 32 & 64-bit Build"
+        run_ext trace "WoW 32 & 64-bit Build"
         [ -d "$test_root/wow32" ] || mkdir "$test_root/wow32"
         [ -d "$test_root/wow64" ] || mkdir "$test_root/wow64"
         dry_run $time $nice "$dir0/wt-bot" --dir "$test_root/wow64" --build --build-retry --wow
@@ -787,6 +793,7 @@ then
         # Run the Mac driver tests before another test starts X11 / XQuartz
         do_pause
         echo "$hostname - WineTest (Mac driver)"
+        run_ext trace "WineTest (Mac driver)"
         dry_run $time "$dir0/wt-bot" --skip-old --email "$email" \
                 --submit --submit-urls "$submit_urls" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
@@ -798,6 +805,7 @@ then
     then
         do_pause
         echo "$hostname - WineTest"
+        run_ext trace "WineTest"
         dry_run $time "$dir0/wt-bot" --skip-old --email "$email" \
                 --submit --submit-urls "$submit_urls" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
@@ -809,6 +817,7 @@ then
     then
         do_pause
         echo "$hostname - WoW 64-bit WineTest"
+        run_ext trace "WoW 64-bit WineTest"
         dry_run $time "$dir0/wt-bot" --skip-old --email "$email" \
                 --submit --submit-urls "$submit_urls" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
@@ -820,6 +829,7 @@ then
     then
         do_pause
         echo "$hostname - Wow 32-bit WineTest"
+        run_ext trace "WoW 32-bit WineTest"
         # Note: We intentionally don't reset the WinePrefix for this test
         dry_run $time "$dir0/wt-bot" --skip-old --email "$email" \
                 --submit --submit-urls "$submit_urls" \
@@ -857,4 +867,9 @@ fi
 do_pause
 cleanup
 [ "$opt_shutdown" = "0" ] && shutdown=""
-[ -n "$shutdown" ] && dry_run "$dir0/wt-power" "$shutdown"
+if [ -n "$shutdown" ]
+then
+    run_ext trace "wt-power $shutdown"
+    dry_run "$dir0/wt-power" "$shutdown"
+fi
+run_ext trace "Exiting $name0"
