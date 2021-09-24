@@ -453,6 +453,7 @@ fi
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
     then
         echo "$name0 is already running, exiting"
+        run_ext trace "Exiting $name0 (already running)"
         exit 1
     fi
     cleanup
