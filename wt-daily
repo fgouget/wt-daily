@@ -728,12 +728,12 @@ then
     if [ -n "$tag$tagmac" ]
     then
         do_pause
-        echo "$hostname - 32 bits Build"
+        echo "$hostname - 32-bit Build"
         [ -d "$test_root/wine" ] || mkdir "$test_root/wine"
         dry_run $time $nice "$dir0/wt-bot" --dir "$test_root/wine" --build --build-retry
         if [ $? -ne 0 ]
         then
-            echo "The 32 bits build failed. Skipping the 32 bits tests."
+            echo "The 32-bit build failed. Skipping the 32-bit tests."
             tag=""
             tagmac=""
         fi
@@ -743,7 +743,7 @@ then
     then
         do_pause
         echo
-        echo "$hostname - WoW 32 & 64 bits Build"
+        echo "$hostname - WoW 32 & 64-bit Build"
         [ -d "$test_root/wow32" ] || mkdir "$test_root/wow32"
         [ -d "$test_root/wow64" ] || mkdir "$test_root/wow64"
         dry_run $time $nice "$dir0/wt-bot" --dir "$test_root/wow64" --build --build-retry --wow
@@ -808,7 +808,7 @@ then
     if [ -n "$tagwow64" ]
     then
         do_pause
-        echo "$hostname - Wow 64 bit WineTest"
+        echo "$hostname - WoW 64-bit WineTest"
         dry_run $time "$dir0/wt-bot" --skip-old --email "$email" \
                 --submit --submit-urls "$submit_urls" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
@@ -819,7 +819,7 @@ then
     if [ -n "$tagwow32" ]
     then
         do_pause
-        echo "$hostname - Wow 32 bit WineTest"
+        echo "$hostname - Wow 32-bit WineTest"
         # Note: We intentionally don't reset the WinePrefix for this test
         dry_run $time "$dir0/wt-bot" --skip-old --email "$email" \
                 --submit --submit-urls "$submit_urls" \
