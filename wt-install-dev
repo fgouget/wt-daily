@@ -488,8 +488,8 @@ apt_wine()
     # Before 1.2 vkd3d is missing libvkd3d-shader1 which is required for Wine.
     if apt_pkg libvkd3d-shader1
     then
-        # But multiarch support is broken in 1.2-3 (see bug 983776)
-        apt_blacklist libvkd3d-dev 1.2-3 libvkd3d-dev libvkd3d1
+        # But multiarch support is broken in 1.2-[3-5] (see bug 983776)
+        apt_blacklist libvkd3d-dev 1.2- libvkd3d-dev libvkd3d1
     fi
 
     apt_multi libvulkan-dev
@@ -693,7 +693,7 @@ apt_epilogue()
         echo
     elif wt_explain_bad_pkg "libvkd3d-dev:i386"
     then
-        echo "* libvkd3d-dev 1.2-3 claims to support multiarch but ships a conflicting file "
+        echo "* libvkd3d-dev 1.2-* claims to support multiarch but ships a conflicting file "
         echo "  (vkd3d-compiler)."
         echo "  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=983776"
         echo
