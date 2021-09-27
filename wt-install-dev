@@ -913,7 +913,7 @@ zypper_wine()
     zypper_multi alsa-devel
     zypper_multi capi4linux-devel
     zypper_multi cups-devel
-    zypper_multi cyrus-sasl-dev
+    zypper_multi cyrus-sasl-devel
     zypper_multi dbus-1-devel
 
     zypper_multi FAudio-devel
