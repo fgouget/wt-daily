@@ -838,9 +838,8 @@ zypper_multi()
     do
         rc=0
         zypper_pkg "$pkg" || rc=1
-        zypper_pkg "$pkg-32bit" || rc=$(($pkg + 1))
-        [ $rc -lt 0 ] && return 0
-        [ $rc -eq 1 ] && return 1
+        zypper_pkg "$pkg-32bit" || rc=$((rc + 1))
+        [ $rc -lt 2 ] && return $rc
     done
     return 2
 }
