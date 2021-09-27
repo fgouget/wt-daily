@@ -764,6 +764,8 @@ zypper_addrepo()
     esac
 
     distname=`zypper targetos | sed -e 's/-x86_64$//' -e 's/-/_/g'`
+    # zypper targetos is broken on openSUSE Leap 15.3+
+    [ -n "$distname" ] || distname=`zypper --terse targetos --label | grep labelLong | sed -e 's/labelLong[ \t]*//' -e 's/ /_/g'`
     url="https://download.opensuse.org/repositories/$project/$distname/$project.repo"
     echo
     echo "********************"
