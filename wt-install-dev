@@ -833,14 +833,18 @@ zypper_pkg()
 # If no matching package was found return 2 (failure).
 zypper_multi()
 {
-    local pkg rc
+    local pkg rc multi_missing
+    local saved_pkgmissing="$pkgmissing"
     for pkg in $*
     do
         rc=0
         zypper_pkg "$pkg" || rc=1
         zypper_pkg "$pkg-32bit" || rc=$((rc + 1))
         [ $rc -lt 2 ] && return $rc
+        pkgmissing="$saved_pkgmissing"
+        multi_missing="$multi_missing $pkg $pkg-32bit"
     done
+    pkgmissing="$pkgmissing $multi_missing"
     return 2
 }
 
