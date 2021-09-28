@@ -816,6 +816,18 @@ zypper_pkg()
              return 0
              ;;
         esac
+        # zypper_get_packages() does not know about virtual packages so fall
+        # back to a slower 'zypper install' dry-run.
+        if zypper --non-interactive install --dry-run "$pkg" >/dev/null 2>&1
+        then
+            echo " yes"
+            # Add the virtual package to $zypper_packages in case it is
+            # queried again. Note: ensure it is enclosed in spaces.
+            zypper_packages="$zypper_packages$pkg "
+            pkginstall="$pkginstall $pkg"
+            return 0
+        fi
+
         echo " no"
     done
     pkgmissing="$pkgmissing "`echo "$@" | sed -e 's/ /|/g'`
