@@ -915,7 +915,7 @@ zypper_wine()
 
     # Libraries
     zypper_multi alsa-devel
-    zypper_multi capi4linux-devel
+    zypper_multi libcapi20-devel capi4linux-devel
     zypper_multi cups-devel
     zypper_multi cyrus-sasl-devel
     zypper_multi dbus-1-devel
@@ -1100,10 +1100,11 @@ zypper_workarounds()
 
 zypper_epilogue()
 {
-    if wt_explain_bad_pkgs "capi4linux-devel"
+    if wt_explain_bad_pkgs "capi4linux-devel-32bit" "libcapi20-devel-32bit"
     then
-        echo "* Support for libcapi20 has been removed in Tumbleweed. This only impacts"
-        echo "  the rare Windows applications that would use ISDN phone lines."
+        echo "* openSUSE 15.3 and Tumbleweed are missing 32-bit support for libcapi20. This"
+        echo "  only impacts the rare Windows applications that would use ISDN phone lines."
+        echo "  https://bugzilla.opensuse.org/show_bug.cgi?id=1191039"
         echo "  https://wiki.winehq.org/Building_Wine#Satisfying_Build_Dependencies"
         echo
     fi
