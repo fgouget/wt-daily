@@ -1094,6 +1094,7 @@ zypper_workarounds()
         wt_create_sos gstreamer-devel-32bit libgstbase-1.0 libgstreamer-1.0
         wt_create_sos libnetapi-devel-32bit libnetapi
         wt_create_sos Mesa-libGL-devel-32bit libGL
+        wt_create_sos ocl-icd-devel-32bit libOpenCL
         wt_create_sos vulkan-devel-32bit libvulkan
     fi
 }
@@ -1149,18 +1150,6 @@ zypper_epilogue()
         echo "  on the OBS."
         echo "  https://build.opensuse.org/project/show/windows:mingw:win64"
         echo
-    fi
-    if wt_explain_bad_pkgs "ocl-icd-devel-32bit"
-    then
-        if wt_explain_bad_pkgs "libOpenCL1-32bit"
-        then
-            echo "* Both ocl-icd-devel-32bit and libOpenCL1-32bit are missing so there is no"
-            echo "  OpenCL 32-bit support at all."
-            echo
-        else
-            echo "* Update the script to work around the missing development package."
-            echo
-        fi
     fi
     if wt_explain_bad_pkgs "prelink"
     then
