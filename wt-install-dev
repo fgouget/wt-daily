@@ -810,6 +810,16 @@ zypper_addrepo()
     return 0
 }
 
+zypper_check()
+{
+    local pkg="$1"
+    local field="$2"
+    local value="$3"
+    shift 3
+    LANG= zypper --non-interactive info "$@" "$pkg" 2>/dev/null |
+        egrep -q "$field *: *$value"
+}
+
 # zypper_pkg <pkg1> ...
 #
 # If <pkg1> exists, schedule it for installation and return success.
@@ -906,7 +916,10 @@ zypper_wine()
     zypper_addrepo FAudio-devel Emulators:Wine "the FAudio packages" && refresh=1
     zypper_addrepo mingw32-cross-gcc windows:mingw:win32 "the win32 MinGW cross-compiler" && refresh=1
     zypper_addrepo mingw64-cross-gcc windows:mingw:win64 "the win64 MinGW cross-compiler" && refresh=1
-    zypper_addrepo vkd3d-devel home:dimesio "the vkd3d packages" && refresh=1
+    if ! zypper_check vkd3d-devel "Version" "1\\.2"
+    then
+        zypper_addrepo "" home:dimesio "the vkd3d packages" && refresh=1
+    fi
     if [ -n "$refresh" ]
     then
         dry_run zypper refresh
