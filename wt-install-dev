@@ -958,9 +958,11 @@ zypper_wine()
     zypper_multi glu-devel
 
     # Missing -devel-32bit package in openSUSE Leap 15.1 (bug 1172304)
-    # Installing the 32-bit glib2-devel allows working around
-    # the missing gstreamer-devel-32bit package.
-    zypper_multi gstreamer-devel || zypper_multi glib2-devel
+    zypper_multi gstreamer-devel
+    # Installing the 32-bit glib2-devel allows working around the missing
+    # gstreamer-devel-32bit package. It also compensates for the missing
+    # dependency in that package.
+    zypper_multi glib2-devel
     zypper_multi gstreamer-plugins-base-devel
 
     zypper_multi jxrlib-devel
