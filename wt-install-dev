@@ -68,15 +68,19 @@ wt_remove_bad_pkg()
     pkgmissing=`echo "$pkgmissing " | sed -e "s/ $pkg[^ ]*/ /g"`
 }
 
-wt_explain_bad_pkg()
+wt_explain_bad_pkgs()
 {
-    local pkg="$1"
-    if echo " $pkgmissing $pkgbroken " | grep -q " $pkg "
-    then
-        wt_remove_bad_pkg "$pkg"
-        return 0
-    fi
-    return 1
+    local pkg
+    local rc=1
+    for pkg in $*
+    do
+        if echo " $pkgmissing $pkgbroken " | grep -q " $pkg "
+        then
+            wt_remove_bad_pkg "$pkg"
+            rc=0
+        fi
+    done
+    return $rc
 }
 
 wt_pretty_list()
@@ -648,12 +652,12 @@ apt_workarounds()
 
 apt_epilogue()
 {
-    if wt_explain_bad_pkg "faudio-dev"
+    if wt_explain_bad_pkgs "faudio-dev"
     then
         echo "* FAudio is only available on distributions derived from Debian 11+."
         echo
     fi
-    if wt_explain_bad_pkg "libgstreamer-plugins-base1.0-dev"
+    if wt_explain_bad_pkgs "libgstreamer-plugins-base1.0-dev"
     then
         echo "* GStreamer has different header files for 32- and 64-bit. Unfortunately"
         echo "  libgstreamer-plugins-base1.0-dev:i386 cannot be installed because some of its"
@@ -667,19 +671,19 @@ apt_epilogue()
         echo "  https://wiki.winehq.org/Building_Wine#Satisfying_Build_Dependencies"
         echo
     fi
-    if wt_explain_bad_pkg "ttf-mscorefonts-installer"
+    if wt_explain_bad_pkgs "ttf-mscorefonts-installer"
     then
         echo "* ttf-mscorefonts-installer is in the contrib section of the repository. You"
         echo "  may need to update /etc/apt/sources.list (man sources.list)."
         echo
     fi
-    if wt_explain_bad_pkg "oss4-dev"
+    if wt_explain_bad_pkgs "oss4-dev"
     then
         echo "* OSS4 is no longer available in Debian 11 but is obsolete anyway."
         echo "  https://wiki.winehq.org/Building_Wine#Satisfying_Build_Dependencies"
         echo
     fi
-    if wt_explain_bad_pkg "samba-dev:i386"
+    if wt_explain_bad_pkgs "samba-dev:i386"
     then
         echo "* samba-dev ostensibly supports multiarch but the 32-bit version depends"
         echo "  on python:i386 through python-talloc and samba-libs. Similarly the 64-bit"
@@ -687,11 +691,11 @@ apt_epilogue()
         echo "  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=961867"
         echo
     fi
-    if wt_explain_bad_pkg "libvkd3d-shader1"
+    if wt_explain_bad_pkgs "libvkd3d-shader1"
     then
         echo "* Wine needs a vkd3d >= 1.2 package (see experimental?)."
         echo
-    elif wt_explain_bad_pkg "libvkd3d-dev:i386"
+    elif wt_explain_bad_pkgs "libvkd3d-dev:i386"
     then
         echo "* libvkd3d-dev 1.2-* claims to support multiarch but ships a conflicting file "
         echo "  (vkd3d-compiler)."
@@ -1096,20 +1100,20 @@ zypper_workarounds()
 
 zypper_epilogue()
 {
-    if wt_explain_bad_pkg "capi4linux-devel"
+    if wt_explain_bad_pkgs "capi4linux-devel"
     then
         echo "* Support for libcapi20 has been removed in Tumbleweed. This only impacts"
         echo "  the rare Windows applications that would use ISDN phone lines."
         echo "  https://wiki.winehq.org/Building_Wine#Satisfying_Build_Dependencies"
         echo
     fi
-    if wt_explain_bad_pkg "FAudio-devel"
+    if wt_explain_bad_pkgs "FAudio-devel"
     then
         echo "* FAudio-devel is available through the Emulators:Wine project on the OBS."
         echo "  https://build.opensuse.org/project/show/Emulators:Wine"
         echo
     fi
-    if wt_explain_bad_pkg "gstreamer-devel-32bit"
+    if wt_explain_bad_pkgs "gstreamer-devel-32bit"
     then
         echo "* GStreamer has different header files for 32- and 64-bit. Unfortunately"
         echo "  gstreamer-devel-32bit is missing which means there is no easy workaround."
@@ -1119,7 +1123,7 @@ zypper_epilogue()
         echo "  https://wiki.winehq.org/OpenSUSE#Build_Tools_and_Dependencies"
         echo
     fi
-    if wt_explain_bad_pkg "jxrlib-32bit"
+    if wt_explain_bad_pkgs "jxrlib-32bit"
     then
         echo "* Both jxrlib-devel-32bit and jxrlib-32bit are missing so there is no"
         echo "  32-bit support at all for JPEG XR images. Try a newer distributution release."
@@ -1131,23 +1135,23 @@ zypper_epilogue()
         echo "  https://wiki.winehq.org/Building_Wine#Satisfying_Build_Dependencies"
         echo
     fi
-    if wt_explain_bad_pkg "mingw32-cross-gcc"
+    if wt_explain_bad_pkgs "mingw32-cross-gcc"
     then
         echo "* The MinGW compiler is available through the windows:mingw:win32 projects"
         echo "  on the OBS."
         echo "  https://build.opensuse.org/project/show/windows:mingw:win32"
         echo
     fi
-    if wt_explain_bad_pkg "mingw64-cross-gcc"
+    if wt_explain_bad_pkgs "mingw64-cross-gcc"
     then
         echo "* The MinGW compiler is available through the windows:mingw:win64 projects"
         echo "  on the OBS."
         echo "  https://build.opensuse.org/project/show/windows:mingw:win64"
         echo
     fi
-    if wt_explain_bad_pkg "ocl-icd-devel-32bit"
+    if wt_explain_bad_pkgs "ocl-icd-devel-32bit"
     then
-        if wt_explain_bad_pkg "libOpenCL1-32bit"
+        if wt_explain_bad_pkgs "libOpenCL1-32bit"
         then
             echo "* Both ocl-icd-devel-32bit and libOpenCL1-32bit are missing so there is no"
             echo "  OpenCL 32-bit support at all."
@@ -1157,13 +1161,13 @@ zypper_epilogue()
             echo
         fi
     fi
-    if wt_explain_bad_pkg "prelink"
+    if wt_explain_bad_pkgs "prelink"
     then
         echo "* It may be possible to use the RHEL prelink package."
         echo "  https://software.opensuse.org/package/prelink"
         echo
     fi
-    if wt_explain_bad_pkg "vkd3d-devel"
+    if wt_explain_bad_pkgs "vkd3d-devel"
     then
         echo "* vkd3d is only available through the home:dimesio project on the OBS."
         echo "  https://build.opensuse.org/project/show/home:dimesio"
