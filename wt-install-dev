@@ -754,7 +754,7 @@ zypper_newrepos=""
 # asks whether it should be added. If --yes was given or the user agrees the
 # repository is added but 'zypper refresh' is not called.
 #
-# Returns 0 if a repository was added, non-zero otherwise.
+# Returns 0 if the repository is available, non-zero otherwise.
 zypper_addrepo()
 {
     local a distname url
@@ -762,10 +762,20 @@ zypper_addrepo()
     local project="$2"
     local packages="$3"
 
+    repo_alias=$(echo $project | sed -e 's/:/_/g')
+    if zypper repos 2>/dev/null | grep -q "$repo_alias"
+    then
+        zypper_newrepos="$zypper_newrepos $repo_alias"
+        return 0
+    fi
+
     zypper_get_packages
-    case "$zypper_packages" in
-    *" $landmark "*) return 1 ;;
-    esac
+    if [ -n "$landmark" ]
+    then
+        case "$zypper_packages" in
+        *" $landmark "*) return 1 ;;
+        esac
+    fi
 
     distname=`zypper targetos | sed -e 's/-x86_64$//' -e 's/-/_/g'`
     # zypper targetos is broken on openSUSE Leap 15.3+
@@ -795,7 +805,8 @@ zypper_addrepo()
         options="--no-gpgcheck"
     fi
     dry_run zypper addrepo $options "$url"
-    zypper_newrepos="$zypper_newrepos "$(echo "$project" | sed -e 's/:/_/g')
+    zypper_newrepos="$zypper_newrepos $repo_alias"
+    return 0
 }
 
 # zypper_pkg <pkg1> ...
