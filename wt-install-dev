@@ -1043,8 +1043,9 @@ zypper_wine()
 
     zypper_multi sane-backends-devel
     # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
-    zypper_multi sane-backends || # openSUSE Leap 15.1
-        zypper_multi libsane1     # openSUSE Tumbleweed
+    # and in Tumbleweed. Also the libsane.so.* librares moved from
+    # sane-backends in Leap 15.x to libsane1 in Tumbleweed.
+    zypper_multi libsane1 sane-backends
 
     # unixODBC-devel only contains the headers and pkg-config files while
     # the .so symlinks are in unixODBC and unixODBC-32bit. While totally non
