@@ -768,6 +768,7 @@ zypper_addrepo()
         zypper_newrepos="$zypper_newrepos $repo_alias"
         return 0
     fi
+    [ -n "$opt_norepo" ] && return 1
 
     zypper_get_packages
     if [ -n "$landmark" ]
@@ -1222,6 +1223,7 @@ wt_parse_cmdline()
                       opt_wt_daily="1"
                       opt_tb_wine="1"
                       ;;
+        --no-repo)    opt_norepo="0" ;;
         --packages)   opt_packages="1" ;;
         --workarounds) opt_workarounds="1" ;;
         --yes)        opt_yes="-y";;
@@ -1269,7 +1271,7 @@ wt_parse_cmdline()
 
     if [ "$usage" = "0" ]
     then
-        echo "Usage: $name0 [--no-wine] [--no-extra] [--tests] [--locales] [--wt-daily] [--tb-wine] [--packages] [--workarounds] [--yes] [--cmd-log SCRIPT] [--dry-run] [--help]"
+        echo "Usage: $name0 [--no-wine] [--no-extra] [--tests] [--locales] [--wt-daily] [--tb-wine] [--no-repo] [--packages] [--workarounds] [--yes] [--cmd-log SCRIPT] [--dry-run] [--help]"
         echo
 
         echo "Installs the packages needed to build the 32- and 64-bit versions of Wine. When possible applies workarounds if installing both the 32- and 64-bit development packages is impossible. Can also install some extra packages needed by the tests and the wt-daily scripts."
@@ -1290,6 +1292,7 @@ wt_parse_cmdline()
         echo "  --wt-daily   Install the packages needed for the wt-daily scripts."
         echo "  --tb-wine    Install the packages needed for the TestBot's wine VMs."
         echo "  --all        Same as --wine --extra --tests --locales --wt-daily --tb-wine."
+        echo "  --no-repo    Don't add extra package repositories."
         echo "  --packages   Install the packages."
         echo "  --workarounds Apply workarounds for packages that don't support multiarch so"
         echo "               that both the 32- and 64-bit versions of Wine can be built."
@@ -1315,6 +1318,7 @@ wt_build_cmdargs()
     [ "$opt_wine_locales" = "1" ] && wt_cmdargs="$wt_cmdargs --locales"
     [ "$opt_wt_daily" = "1" ] && wt_cmdargs="$wt_cmdargs --wt-daily"
     [ "$opt_tb_wine" = "1" ] && wt_cmdargs="$wt_cmdargs --tb-wine"
+    [ "$opt_norepo" = "1" ] && wt_cmdargs="$wt_cmdargs --no-repo"
     [ "$opt_packages" = "1" ] && wt_cmdargs="$wt_cmdargs --packages"
     [ "$opt_workarounds" = "1" ] && wt_cmdargs="$wt_cmdargs --workarounds"
     [ "$opt_yes" = "1" ] && wt_cmdargs="$wt_cmdargs --yes"
@@ -1436,6 +1440,7 @@ then
     opt_wine_locales=""
     opt_wt_daily=""
     opt_tb_wine=""
+    opt_norepo=""
     opt_packages=""
     opt_workarounds=""
     opt_yes=""
