@@ -430,7 +430,7 @@ apt_wine()
     apt_multi --if-0 $? libfontconfig1-dev || apt_multi libfontconfig1
 
     apt_multi libgl1-mesa-dev
-    apt_multi libglu1-mesa-dev
+    apt_multi libglu1-mesa-dev # Not used since Wine ec55b1c271ae (2020-11-12)
 
     # The GPhoto2 development package can only be installed if the Exif
     # one supports multiarch
@@ -955,7 +955,7 @@ zypper_wine()
 
     zypper_multi freetype2-devel
     zypper_multi glibc-devel
-    zypper_multi glu-devel
+    zypper_multi glu-devel # Not used since Wine ec55b1c271ae (2020-11-12)
 
     # Missing -devel-32bit package in openSUSE Leap 15.1 (bug 1172304)
     zypper_multi gstreamer-devel
