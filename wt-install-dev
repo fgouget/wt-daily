@@ -1061,7 +1061,7 @@ zypper_wine()
     # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
     zypper_multi libvulkan1
 
-    zypper_multi zlib-devel
+    zypper_multi zlib-devel # Not used since Wine 7f726ddd89be (2021-10-18)
 }
 
 zypper_wine_extra()
