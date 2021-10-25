@@ -129,7 +129,7 @@ sub cross_off_reports($$)
             cross_off_reports("$url/$1", $tags);
             return if (!keys %$tags);
         }
-        elsif ($link =~ m=^([a-z0-9]+_([^/]+))/version\.html$=)
+        elsif ($link =~ m=^([a-zA-Z0-9]+_([^/]+))/version\.html$=)
         {
             verbose("  found $1\n");
             delete $tags->{$1};
