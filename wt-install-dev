@@ -421,7 +421,7 @@ apt_wine()
     apt_multi libasound2-dev
     apt_multi libcapi20-dev
     apt_multi libdbus-1-dev
-    apt_multi libfaudio-dev
+    apt_multi libfaudio-dev # Not used since Wine d8be85863fed (2021-10-21)
 
     # The FontConfig development package can only be installed if the FreeType
     # one supports multiarch
@@ -437,19 +437,19 @@ apt_wine()
     apt_multi --test libexif-dev
     apt_multi --if-0 $? libgphoto2-dev || apt_multi libgphoto2-6
 
-    apt_multi libgsm1-dev
+    apt_multi libgsm1-dev # Not used since Wine 0e7fd41af953 (2021-10-20)
 
     # The GnuTLS development package can only be installed if the idn2 one
     # one supports multiarch
     apt_multi --test libidn2-0-dev
     apt_multi --if-0 $? libgnutls28-dev || apt_multi libgnutls30
 
-    apt_multi libjpeg62-turbo-dev libjpeg-turbo8-dev
-    apt_multi libjxr-dev
+    apt_multi libjpeg62-turbo-dev libjpeg-turbo8-dev # Not used since Wine a6ac035a7454 (2021-10-19)
+    apt_multi libjxr-dev # Not used since Wine eb0180e7b4df (2021-10-21)
     apt_multi libkrb5-dev
-    apt_multi liblcms2-dev
+    apt_multi liblcms2-dev # Not used since Wine 5c4c272a2606 (2021-10-19)
     apt_multi libldap2-dev
-    apt_multi libmpg123-dev
+    apt_multi libmpg123-dev # Not used since Wine 5329da61ac51 (2021-10-21)
     apt_multi libncurses5-dev # Not used since Wine 26c715f85b49 (2020-09-22)
 
     # The GStreamer development package can only be installed if the liborc
@@ -461,7 +461,7 @@ apt_wine()
     apt_multi libopenal-dev
     apt_multi libosmesa6-dev
     apt_multi libpcap0.8-dev || apt_multi libpcap0.8
-    apt_multi libpng-dev libpng12-dev
+    apt_multi libpng-dev libpng12-dev # Not used since Wine c3d8a29a0499 (2021-10-18)
 
     # The PulseAudio development package can only be installed if the Glib2
     # one supports multiarch
@@ -480,7 +480,7 @@ apt_wine()
     # The CUPS development package can only be installed if the libtiff and
     # libcupsimage ones support multiarch
     rc=0
-    apt_multi libtiff-dev libtiff5-dev || rc=1
+    apt_multi libtiff-dev libtiff5-dev || rc=1 # Not used since Wine d36615ee5232 (2021-10-19)
     apt_multi --test libcupsimage2-dev libcupsimage-dev || rc=1
     apt_multi --if-0 $rc libcups2-dev || apt_multi libcups2
 
@@ -507,8 +507,8 @@ apt_wine()
     # The XML and XSLT development packages can only be installed if the ICU
     # one supports multiarch
     apt_multi --test libicu-dev; rc=$?
-    apt_multi --if-0 $rc libxml2-dev || apt_multi libxml2
-    apt_multi --if-0 $rc libxslt1-dev || apt_multi libxslt1.1
+    apt_multi --if-0 $rc libxml2-dev || apt_multi libxml2 # Not used since Wine bca1b7f2faeb (2021-10-20)
+    apt_multi --if-0 $rc libxslt1-dev || apt_multi libxslt1.1 # Not used since Wine bca1b7f2faeb (2021-10-20)
 
     apt_multi  libxrandr-dev
     apt_multi  libxrender-dev
@@ -945,7 +945,7 @@ zypper_wine()
     zypper_multi cyrus-sasl-devel
     zypper_multi dbus-1-devel
 
-    zypper_multi FAudio-devel
+    zypper_multi FAudio-devel # Not used since Wine d8be85863fed (2021-10-21)
     # Missing dependencies in -devel-32bit from Emulators:Wine (bug 1172309)
     zypper_multi libFAudio0
 
@@ -965,7 +965,7 @@ zypper_wine()
     zypper_multi glib2-devel
     zypper_multi gstreamer-plugins-base-devel
 
-    zypper_multi jxrlib-devel
+    zypper_multi jxrlib-devel # Not used since Wine eb0180e7b4df (2021-10-21)
     # Missing dependencies in -devel-32bit on openSUSE Tumbleweed (bug 1183053)
     zypper_multi libjpegxr0
     # Missing -32bit package in openSUSE Tumbleweed (bug 1183052)
@@ -982,9 +982,9 @@ zypper_wine()
     zypper_multi libgphoto2-6
     zypper_multi libexif-devel
 
-    zypper_multi libgsm-devel
-    zypper_multi libjpeg8-devel
-    zypper_multi liblcms2-devel
+    zypper_multi libgsm-devel # Not used since Wine 0e7fd41af953 (2021-10-20)
+    zypper_multi libjpeg8-devel # Not used since Wine a6ac035a7454 (2021-10-19)
+    zypper_multi liblcms2-devel # Not used since Wine 5c4c272a2606 (2021-10-19)
 
     zypper_multi libnetapi-devel
     # Workaround the missing -devel-32bit package in openSUSE Leap 15.1 (bug 1172307)
@@ -992,14 +992,14 @@ zypper_wine()
 
     zypper_multi libOSMesa-devel
     zypper_multi libpcap-devel
-    zypper_multi libpng16-compat-devel
+    zypper_multi libpng16-compat-devel # Not used since Wine c3d8a29a0499 (2021-10-18)
 
     zypper_multi libpulse-devel
     # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
     zypper_multi libpulse0
 
     zypper_multi libSDL2-devel
-    zypper_multi libtiff-devel
+    zypper_multi libtiff-devel # Not used since Wine d36615ee5232 (2021-10-19)
 
     zypper_pkg   libunwind-devel # Wine only needs the 64-bit library
 
@@ -1018,16 +1018,16 @@ zypper_wine()
     zypper_multi libXi-devel
     zypper_multi libXinerama-devel
     zypper_multi libXxf86vm-devel
-    zypper_multi libxml2-devel
+    zypper_multi libxml2-devel # Not used since Wine bca1b7f2faeb (2021-10-20)
     zypper_multi libXrandr-devel
     zypper_multi libXrender-devel
-    zypper_multi libxslt-devel
+    zypper_multi libxslt-devel # Not used since Wine bca1b7f2faeb (2021-10-20)
 
     zypper_multi Mesa-libGL-devel
     # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172302)
     zypper_multi Mesa-libGL1
 
-    zypper_multi mpg123-devel
+    zypper_multi mpg123-devel # Not used since Wine 5329da61ac51 (2021-10-21)
     zypper_multi ncurses-devel # Not used since Wine 26c715f85b49 (2020-09-22)
 
     zypper_pkg   opencl-headers
