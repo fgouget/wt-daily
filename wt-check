@@ -153,7 +153,7 @@ sub clean_commits($$$$$)
         {
             if ($tag =~ /\Q$key\E/)
             {
-                $lastrunfile = "$root/otheros/$tagmap->{$key}.commit";
+                $lastrunfile = "$root/otheroses/$tagmap->{$key}.commit";
                 last;
             }
         }
