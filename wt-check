@@ -146,7 +146,7 @@ sub clean_commits($$$$$)
     my ($tags, $root, $tagmap, $build, $is_latest_build) = @_;
 
     verbose("Cleaning up commit files\n");
-    foreach my $tag (keys %$tags)
+    foreach my $tag (sort keys %$tags)
     {
         my $lastrunfile;
         foreach my $key (keys %$tagmap)
