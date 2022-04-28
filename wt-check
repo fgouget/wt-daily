@@ -198,8 +198,13 @@ sub clean_commits($$$$$)
             next;
         }
 
+        # In the Windows case the commit file is created before rebooting so
+        # by the time the results appear its age will be two WineTest runs
+        # and one website cron interval (plus reboots, etc). Furthermore it's
+        # preferable to try to not get stuck trying to re-run the tests in the
+        # same configuration again and again. So set the minimum age high.
         my $mtime = (stat($lastrunfile))[9];
-        if (time() - $mtime < 60 * 60)
+        if (time() - $mtime < 119 * 60)
         {
             # The website's cron job may not yet have processed the report.
             verbose("  too recent     $lastrunfile\n");
