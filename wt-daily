@@ -496,33 +496,57 @@ set_otheros_status()
     echo "$1" >"$test_root/otheroses/$base.commit"
 }
 
+filter_otheroses()
+{
+    queue_file="$test_root/otheroses/queue"
+    queued=`cat "$queue_file" 2>/dev/null`
+    [ -n "$queued" ] && otheroses="$queued"
+
+    # Check and prune the $otheroses list
+    queue=""
+    for image in $otheroses
+    do
+        commitid=`get_otheros_status "$image"`
+        if [ "$commitid" = "$latest_commitid" ]
+        then
+            # If the image comes from the queue the commit file was created
+            # just before rebooting so its timestamp is pretty old. Recreate
+            # it so the timestamp matches when the test completed.
+            [ -n "$queued" ] && set_otheros_status "$image"
+        elif [ ! -x "$image" ]
+        then
+            error "'$image' is not executable, skipping it"
+        else
+            queue="$queue $image"
+        fi
+    done
+    if [ -n "$queue" ]
+    then
+        echo "$queue" >"$queue_file"
+    else
+        rm -f "$queue_file"
+    fi
+    otheroses="$queue"
+}
+
 # Pick an OS image to restore
 select_otheros()
 {
-    if [ -n "$otheroses" ]
-    then
-        for image in $otheroses
-        do
-            commitid=`get_otheros_status "$image"`
-            if [ "$commitid" = "$latest_commitid" ]
-            then
-                echo "tests were run for '$image' already, skipping it"
-            elif [ ! -x "$image" ]
-            then
-                error "'$image' is not executable, skipping it"
-            elif [ -n "$opt_auto_otheros" ]
-            then
-                echo "$image" >"$otheros_file"
-                break
-            # Note: select_otheros() is only called in a subshell
-            # -> no trap here (see run())
-            elif run "$dir0/wt-ask" "Run the tests on '$image'?"
-            then
-                echo "$image" >"$otheros_file"
-                break
-            fi
-        done
-    fi
+    filter_otheroses
+    for image in $otheroses
+    do
+        if [ -n "$opt_auto_otheros" ]
+        then
+            echo "$image" >"$otheros_file"
+            break
+        # Note: select_otheros() is only called in a subshell
+        # -> no trap here (see run())
+        elif run "$dir0/wt-ask" "Run the tests on '$image'?"
+        then
+            echo "$image" >"$otheros_file"
+            break
+        fi
+    done
 }
 
 restore_otheros()
@@ -558,6 +582,7 @@ restore_otheros()
 # This sets up another disk image in case we failed to set up the first one
 prepare_any_otheros()
 {
+    filter_otheroses
     for image in $otheroses
     do
         if restore_otheros "$image"
