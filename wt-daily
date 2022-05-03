@@ -480,7 +480,7 @@ run_ext trace "Starting $name0"
 
 otheros_file="$test_root/$name0.otheros"
 
-# Returns either the latest Wine commit as of the last time the tests were run
+# Returns the latest Wine commit as of the last time the tests were run
 # on this other OS.
 get_otheros_status()
 {
