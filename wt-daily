@@ -785,7 +785,7 @@ kill $ready_pid
 wait_for $interactive_tasks
 
 do_pause
-run_ext pre_test
+run_ext pre_tests
 
 if [ "$opt_test" = "1" ]
 then
@@ -795,11 +795,13 @@ then
         do_pause
         echo "$hostname - WineTest (Mac driver)"
         run_ext trace "WineTest (Mac driver)"
+        run_ext pre_test "mac"
         dry_run $time "$dir0/wt-bot" --skip-old --email "$email" \
                 --submit --submit-urls "$submit_urls" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
                 --dir "$test_root/wine" --macdrv --winetest "$tagmac" \
                 --desc "$descmac" --exclude "$excludemac"
+        run_ext post_test "mac"
     fi
 
     if [ -n "$tag" ]
@@ -807,11 +809,13 @@ then
         do_pause
         echo "$hostname - WineTest"
         run_ext trace "WineTest"
+        run_ext pre_test "win32"
         dry_run $time "$dir0/wt-bot" --skip-old --email "$email" \
                 --submit --submit-urls "$submit_urls" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
                 --dir "$test_root/wine" --winetest "$tag" \
                 --desc "$desc" --exclude "$exclude"
+        run_ext post_test "win32"
     fi
 
     if [ -n "$tagwow64" ]
@@ -819,11 +823,13 @@ then
         do_pause
         echo "$hostname - WoW 64-bit WineTest"
         run_ext trace "WoW 64-bit WineTest"
+        run_ext pre_test "wow64"
         dry_run $time "$dir0/wt-bot" --skip-old --email "$email" \
                 --submit --submit-urls "$submit_urls" \
                 --new-wineprefix --wineprefix "$test_root/wineprefix" \
                 --dir "$test_root/wow64" --winetest "$tagwow64" \
                 --desc "$descwow64" --exclude "$excludewow64"
+        run_ext post_test "wow64"
     fi
 
     if [ -n "$tagwow32" ]
@@ -831,6 +837,7 @@ then
         do_pause
         echo "$hostname - Wow 32-bit WineTest"
         run_ext trace "WoW 32-bit WineTest"
+        run_ext pre_test "wow32"
         # Note: We intentionally don't reset the WinePrefix for this test
         dry_run $time "$dir0/wt-bot" --skip-old --email "$email" \
                 --submit --submit-urls "$submit_urls" \
@@ -838,6 +845,7 @@ then
                 --dir "$test_root/wow64" --winetest "$tagwow32" \
                 --desc "$descwow32" --exclude "$excludewow32" \
                 --testexe "$test_root/wow32/programs/winetest/winetest.exe"
+        run_ext post_test "wow32"
     fi
 
     rm -rf "$test_root/wineprefix"
@@ -851,7 +859,7 @@ fi
 #####
 
 do_pause
-run_ext post_test
+run_ext post_tests
 
 wait_for $other_tasks
 

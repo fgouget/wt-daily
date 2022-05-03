@@ -158,13 +158,28 @@ pre_build()
 # Called after the build tasks and before starting the test ones.
 # Note that this is always called, even if --no-test was specified.
 # Skip tasks if [ "$opt_test" != "1" ].
+pre_tests()
+{
+    return
+}
+
+# Called before starting a WineTest run.
+# The argument (mac, win32, wow32, wow64) describes which WineTest run is
+# about to start.
 pre_test()
 {
     return
 }
 
-# Called after the test tasks.
+# Called when a WineTest run completes.
+# The argument describes which WineTest run completed. See pre_test().
 post_test()
+{
+    return
+}
+
+# Called after the test tasks.
+post_tests()
 {
     return
 }
