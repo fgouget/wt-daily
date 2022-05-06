@@ -585,6 +585,8 @@ apt_wine_locales()
             ;;
         esac
     done
+    # Needed for gdi32:font in the Chinese locale
+    apt_pkg fonts-arphic-uming
 }
 
 apt_wt_daily()
