@@ -448,7 +448,7 @@ apt_wine()
     apt_multi libjxr-dev # Not used since Wine eb0180e7b4df (2021-10-21)
     apt_multi libkrb5-dev
     apt_multi liblcms2-dev # Not used since Wine 5c4c272a2606 (2021-10-19)
-    apt_multi libldap2-dev
+    apt_multi libldap-dev libldap2-dev
     apt_multi libmpg123-dev # Not used since Wine 5329da61ac51 (2021-10-21)
     apt_multi libncurses5-dev # Not used since Wine 26c715f85b49 (2020-09-22)
 
