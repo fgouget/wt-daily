@@ -455,8 +455,12 @@ apt_wine()
     # The GStreamer development package can only be installed if the liborc
     # one supports multiarch
     apt_multi --test liborc-0.4-dev
-    apt_multi --if-0 $? libgstreamer-plugins-base1.0-dev ||
+    apt_multi --if-0 $? libgstreamer-plugins-base1.0-dev
+    if [ $? -ne 0 ]
+    then
         apt_multi libgstreamer-plugins-base1.0-0
+        apt_multi libgstreamer1.0-dev
+    fi
 
     apt_multi libopenal-dev
     apt_multi libosmesa6-dev
