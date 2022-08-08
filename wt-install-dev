@@ -200,7 +200,7 @@ apt_check()
     local action="$1"
     local pkg="$2"
     shift 2
-    LANG= apt-cache "$action" "$pkg" 2>/dev/null | grep -q "$@"
+    LANG= apt-cache --no-all-versions "$action" "$pkg" 2>/dev/null | grep -q "$@"
 }
 
 # apt_addsection <landmark> <section> <packages>
