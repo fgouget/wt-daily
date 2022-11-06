@@ -821,7 +821,11 @@ then
         fi
         [ -n "$opt_winetest" ] || return $rc
 
-        [ -n "$opt_testexe" ] || opt_testexe="programs/winetest/winetest.exe"
+        if [ -z "$opt_testexe" ]
+        then
+            opt_testexe="programs/winetest/x86_64-windows/winetest.exe"
+            [ -f "$opt_testexe" ] || opt_testexe="programs/winetest/i386-windows/winetest.exe"
+        fi
         set -x
         $time ./wine "$opt_testexe" -c -t $opt_winetest -m "$opt_email" \
              -i "$opt_desc" -o "$logbase.report" $opt_exclude
