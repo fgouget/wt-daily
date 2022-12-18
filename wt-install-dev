@@ -658,6 +658,11 @@ apt_workarounds()
         wt_create_sos libgnutls28-dev libgnutls
         wt_create_sos libpcap0.8-dev libpcap
         wt_create_sos libtiff-dev libtiff
+        if ! dpkg -l libgstreamer-plugins-base1.0-dev:i386 >/dev/null 2>&1
+        then
+            apt_dev_workaround libgstreamer-plugins-base1.0-dev
+        fi
+
         wt_create_sos libgstreamer-plugins-base1.0-dev libgstaudio-1.0 libgstbase-1.0 libgstreamer-1.0 libgstvideo-1.0
 
         # Ubuntu 18.04 is missing libxslt/xsltconfig.h
