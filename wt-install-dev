@@ -497,8 +497,8 @@ apt_wine()
     # Before 1.2 vkd3d is missing libvkd3d-shader1 which is required for Wine.
     if apt_pkg libvkd3d-shader1
     then
-        # But multiarch support is broken in 1.2-[3-5] (see bug 983776)
-        apt_blacklist libvkd3d-dev 1.2- libvkd3d-dev libvkd3d1
+        # Multiarch support is broken in early versions (see bug 983776)
+        apt_blacklist libvkd3d-dev '1.2-[1-5]$' libvkd3d-dev libvkd3d1
     fi
 
     apt_multi libvulkan-dev
