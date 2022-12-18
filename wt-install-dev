@@ -389,6 +389,37 @@ apt_install()
     echo
 }
 
+# apt_dev_workaround <pkg>
+#
+# For some packages we need more than just the links created by wt_create_sos.
+# For those apt_dev_workaround manually extracts the package files and copies
+# the architecture-specific headers, pkg-config files, and libraries.
+apt_dev_workaround()
+{
+    local pkg="$1"
+    local dir file
+
+    mkdir pkgextract
+    cd pkgextract
+    apt-get download "$pkg:i386"
+    dpkg -x "$pkg"*.deb .
+    find usr/lib/i386-linux-gnu/ \( -type f -o -type l \) | \
+        while read file
+        do
+            dir=$(dirname "/$file")
+            [ -d "$dir" ] || dry_run mkdir -p "$dir" || exit 1
+            dry_run mv "$file" "/$file" || exit 1
+        done
+    rc=$?
+    cd ..
+    rm -rf pkgextract
+    if [ $rc -eq 0 ]
+    then
+        wt_remove_bad_pkg "$pkg"
+    fi
+    return $rc
+}
+
 
 #
 # Debian: Base Wine dependencies
