@@ -224,10 +224,10 @@ then
         usage="2"
     fi
     [ -n "$opt_dir" ] || opt_dir=`pwd`
-    if [ -f "$opt_dir/libs/wine/Makefile.in" ]
+    if [ -f "$opt_dir/dlls/winecrt0/Makefile.in" ]
     then
         src_dir="."
-    elif [ -f "$opt_dir/../src/libs/wine/Makefile.in" ]
+    elif [ -f "$opt_dir/../src/dlls/winecrt0/Makefile.in" ]
     then
         src_dir="../src"
         if [ -n "$opt_spelling" -o -n "$opt_winapicheck" ]
