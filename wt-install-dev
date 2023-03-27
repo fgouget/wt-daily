@@ -497,6 +497,7 @@ apt_wine()
     apt_multi libopenal-dev
     apt_multi libosmesa6-dev
     apt_multi libpcap0.8-dev || apt_multi libpcap0.8
+    apt_multi libpcsclite-dev
     apt_multi libpng-dev libpng12-dev # Not used since Wine c3d8a29a0499 (2021-10-18)
 
     # The PulseAudio development package can only be installed if the Glib2
