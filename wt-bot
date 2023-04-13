@@ -724,7 +724,7 @@ then
 
     # Grab the addons
     arch="x86"
-    if file "$opt_dir/programs/reg/reg.exe" | egrep 'PE32[+]' >/dev/null
+    if [ -f "$opt_dir/programs/reg/x86_64-windows/reg.exe" ]
     then
         arch="x86_64"
     fi
