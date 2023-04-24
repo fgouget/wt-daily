@@ -534,6 +534,9 @@ apt_wine()
     fi
 
     apt_multi libvulkan-dev
+
+    apt_multi libwayland-dev
+
     apt_multi libx11-dev
     apt_multi libxcb1-dev
     apt_multi libxcomposite-dev
@@ -1108,6 +1111,8 @@ zypper_wine()
     zypper_multi vulkan-devel
     # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
     zypper_multi libvulkan1
+
+    zypper_multi wayland-devel
 
     zypper_multi zlib-devel # Not used since Wine 7f726ddd89be (2021-10-18)
 }
