@@ -1086,6 +1086,9 @@ zypper_wine()
 
     zypper_multi openldap2-devel
 
+    # Missing -32bit packages in openSUSE Leap but unused by Wine so far
+    zypper_multi pcsclite-devel
+
     zypper_multi sane-backends-devel
     # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
     # and in Tumbleweed. Also the libsane.so.* librares moved from
