@@ -497,7 +497,7 @@ apt_wine()
     apt_multi libopenal-dev
     apt_multi libosmesa6-dev
     apt_multi libpcap0.8-dev || apt_multi libpcap0.8
-    apt_multi libpcsclite-dev
+    apt_multi libpcsclite-dev || apt_multi libpcsclite1
     apt_multi libpng-dev libpng12-dev # Not used since Wine c3d8a29a0499 (2021-10-18)
 
     # The PulseAudio development package can only be installed if the Glib2
@@ -658,6 +658,7 @@ apt_workarounds()
         wt_create_sos libfreetype6-dev libfreetype
         wt_create_sos libgnutls28-dev libgnutls
         wt_create_sos libpcap0.8-dev libpcap
+        wt_create_sos libpcsclite-dev libpcsclite
         wt_create_sos libtiff-dev libtiff
         if ! dpkg -l libgstreamer-plugins-base1.0-dev:i386 >/dev/null 2>&1
         then
