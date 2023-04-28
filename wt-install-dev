@@ -543,6 +543,7 @@ apt_wine()
     apt_multi libusb-1.0-0-dev
     apt_multi libv4l-dev
 
+    # vkd3d is not used since Wine 24432a24d5e9 (2022-03-03)
     # Before 1.2 vkd3d is missing libvkd3d-shader1 which is required for Wine.
     if apt_pkg libvkd3d-shader1
     then
@@ -759,12 +760,16 @@ apt_epilogue()
     fi
     if wt_explain_bad_pkgs "libvkd3d-shader1"
     then
-        echo "* Wine needs a vkd3d >= 1.2 package (see experimental?)."
+        echo "* Wine does not use the distribution's vkd3d development packages since 2022-03"
+        echo "  so feel free to ignore this issue. For older versions, Wine needs a"
+        echo "  vkd3d >= 1.2 package (see experimental?)."
         echo
     elif wt_explain_bad_pkgs "libvkd3d-dev:i386"
     then
-        echo "* libvkd3d-dev 1.2-* claims to support multiarch but ships a conflicting file "
-        echo "  (vkd3d-compiler)."
+        echo "* Wine does not use the distribution's vkd3d development packages since 2022-03"
+        echo "  so feel free to ignore this issue. Should you want to install libvkd3d-dev"
+        echo "  anyway, note that 1.2-* claims to support multiarch but some versions ship a"
+        echo "  conflicting file (vkd3d-compiler)."
         echo "  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=983776"
         echo
     fi
@@ -989,10 +994,6 @@ zypper_wine()
     zypper_addrepo FAudio-devel Emulators:Wine "the FAudio packages" && refresh=1
     zypper_addrepo mingw32-cross-gcc windows:mingw:win32 "the win32 MinGW cross-compiler" && refresh=1
     zypper_addrepo mingw64-cross-gcc windows:mingw:win64 "the win64 MinGW cross-compiler" && refresh=1
-    if ! zypper_check vkd3d-devel "Version" "1\\.2"
-    then
-        zypper_addrepo "" home:dimesio "the vkd3d packages" && refresh=1
-    fi
     if [ -n "$refresh" ]
     then
         dry_run zypper refresh
@@ -1129,6 +1130,7 @@ zypper_wine()
     zypper_pkg   unixODBC-devel
     zypper_multi unixODBC
 
+    # vkd3d is not used since Wine 24432a24d5e9 (2022-03-03)
     zypper_multi vkd3d-devel
     # Missing dependencies in -devel-32bit from home:dimesio (bug 1172310)
     zypper_multi libvkd3d1
@@ -1265,7 +1267,9 @@ zypper_epilogue()
     fi
     if wt_explain_bad_pkgs "vkd3d-devel"
     then
-        echo "* vkd3d is only available through the home:dimesio project on the OBS."
+        echo "* Wine does not use the distribution's vkd3d development packages since 2022-03"
+        echo "  so feel free to ignore this issue. For older versions vkd3d is only available"
+        echo "  through the home:dimesio project on the OBS."
         echo "  https://build.opensuse.org/project/show/home:dimesio"
         echo
     fi
