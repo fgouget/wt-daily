@@ -495,7 +495,7 @@ apt_wine()
 
     apt_multi libjpeg62-turbo-dev libjpeg-turbo8-dev # Not used since Wine a6ac035a7454 (2021-10-19)
     apt_multi libjxr-dev # Not used since Wine eb0180e7b4df (2021-10-21)
-    apt_multi libkrb5-dev
+    apt_blacklist krb5-multidev "(1.19.2-.ubuntu|1.20-.ubuntu|1.20.1-.build)" libkrb5-dev libkrb5-3
     apt_multi liblcms2-dev # Not used since Wine 5c4c272a2606 (2021-10-19)
     apt_multi libldap-dev libldap2-dev
     apt_multi libmpg123-dev # Not used since Wine 5329da61ac51 (2021-10-21)
