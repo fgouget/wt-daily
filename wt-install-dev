@@ -720,7 +720,9 @@ apt_epilogue()
 {
     if wt_explain_bad_pkgs "libfaudio-dev"
     then
-        echo "* FAudio is only available on distributions derived from Debian 11+."
+        echo "* Wine does not use the distribution's FAudio development packages since"
+        echo "  2021-10 so feel free to ignore this issue. For older versions, FAudio is only"
+        echo "  available on distributions derived from Debian 11+."
         echo
     fi
     if wt_explain_bad_pkgs "libfaudio-dev:i386"
@@ -991,7 +993,6 @@ zypper_init()
 zypper_wine()
 {
     refresh=
-    zypper_addrepo FAudio-devel Emulators:Wine "the FAudio packages" && refresh=1
     zypper_addrepo mingw32-cross-gcc windows:mingw:win32 "the win32 MinGW cross-compiler" && refresh=1
     zypper_addrepo mingw64-cross-gcc windows:mingw:win64 "the win64 MinGW cross-compiler" && refresh=1
     if [ -n "$refresh" ]
@@ -1219,7 +1220,7 @@ zypper_epilogue()
     fi
     if wt_explain_bad_pkgs "FAudio-devel"
     then
-        echo "* FAudio-devel is available through the Emulators:Wine project on the OBS."
+        echo "* Wine does not use the distribution's FAudio development packages since 2021-10. For older versions, FAudio-devel is available through the Emulators:Wine project on the OBS."
         echo "  https://build.opensuse.org/project/show/Emulators:Wine"
         echo
     fi
