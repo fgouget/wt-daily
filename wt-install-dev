@@ -713,12 +713,6 @@ apt_epilogue()
         echo "  Debian 10 which may provide a viable workaround."
         echo
     fi
-    if [ "$opt_wine" = "1" -a "$opt_packages" = "1" ]
-    then
-        echo "* HAL is known not to be available but is obsolete anyway."
-        echo "  https://wiki.winehq.org/Building_Wine#Satisfying_Build_Dependencies"
-        echo
-    fi
     if wt_explain_bad_pkgs "ttf-mscorefonts-installer"
     then
         echo "* ttf-mscorefonts-installer is in the contrib section of the repository. You"
@@ -1214,7 +1208,7 @@ zypper_epilogue()
     fi
     if [ "$opt_wine" = "1" -a "$opt_packages" = "1" ]
     then
-        echo "* HAL and OSS4 are known not to be available but are obsolete anyway."
+        echo "* OSS4 is known not to be available but is obsolete anyway."
         echo "  https://wiki.winehq.org/Building_Wine#Satisfying_Build_Dependencies"
         echo
     fi
