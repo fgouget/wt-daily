@@ -58,7 +58,7 @@ pkgworkaround=""
 wt_get_bad_pkgs()
 {
     local pkg="$1"
-    echo "$pkgbroken $pkgmissing" | tr ' ' '\n' | sort -u | egrep "^$pkg" | tr '\n' ' '
+    echo "$pkgbroken $pkgmissing" | tr ' ' '\n' | sort -u | grep -E "^$pkg" | tr '\n' ' '
 }
 
 wt_remove_bad_pkg()
@@ -617,7 +617,7 @@ apt_wine_locales()
             # Wine slowdowns (see bug 51367).
             for extra_pkg in $(LANG= apt-cache depends "$font_pkg" | sed -e 's/^ *Recommends: \(fonts-noto.*-extra\)$/\1/' -e t -e d | sort -u)
             do
-                if dpkg -l "$extra_pkg" | egrep -q '^[^hrp]n'
+                if dpkg -l "$extra_pkg" | grep -E -q '^[^hrp]n'
                 then
                     apt-mark hold "$extra_pkg"
                 fi
@@ -859,7 +859,7 @@ zypper_check()
     local value="$3"
     shift 3
     LANG= zypper --non-interactive info "$@" "$pkg" 2>/dev/null |
-        egrep -q "$field *: *$value"
+        grep -E -q "$field *: *$value"
 }
 
 # zypper_pkg <pkg1> ...
