@@ -446,6 +446,8 @@ apt_init()
 
 apt_wine()
 {
+    local ver
+
     # Tools
     apt_pkg   bison
     apt_pkg   flex
@@ -454,6 +456,17 @@ apt_wine()
     apt_pkg   gcc-multilib
     apt_pkg   gettext
     apt_pkg   git
+
+    # Pop! OS 22.04 managed to break multiarch support in libc6-dev!!!
+    LANG= apt-get install --dry-run linux-libc-dev:i386 linux-libc-dev:amd64 >"$TMPDIR/$name0.$$" 2>&1
+    if [ $? -ne 0 ]
+    then
+        ver=`sed -e 's/^.*but \(5\..*\) is to be installed$/\1/' -e t -e d "$TMPDIR/$name0.$$" | head -n 1`
+        warning "Force installing version $ver of linux-libc-dev"
+        pkginstall="$pkginstall --allow-downgrades linux-libc-dev:i386=$ver linux-libc-dev:amd64=$ver"
+    fi
+    rm "$TMPDIR/$name0.$$"
+
     apt_multi libasound2-dev
     apt_multi libcapi20-dev
     apt_multi libdbus-1-dev
@@ -1401,6 +1414,7 @@ wt_build_cmdargs()
 
 wt_init()
 {
+    [ -n "$TMPDIR" ] || TMPDIR="/tmp"
     if [ -x "/usr/bin/apt-cache" -a -x "/usr/bin/apt-get" ]
     then
         wt_platform="apt"
