@@ -1,0 +1,486 @@
+#!/usr/bin/perl
+# Copyright (C) 2023 Francois Gouget
+
+use warnings;
+use strict;
+
+use Cwd;
+use File::Basename;
+use File::Copy;
+
+my $name0 = basename($0);
+my $dir0 = dirname(Cwd::realpath($0));
+
+my %DISTS = (
+    "debian:stable" => "Latest stable release",
+    "debian:testing" => "Next/rolling release",
+
+    "elementary/docker:stable" => "Latest stable release",
+    "elementary/docker:unstable" => "Latest unstable release",
+
+    "opensuse/leap:latest" => "Latest stable",
+    "opensuse/tumbleweed:latest" => "Rolling release",
+
+    "ubuntu:latest" => "Latest LTS",
+    "ubuntu:rolling" => "Latest release",
+    "ubuntu:devel" => "Next release",
+);
+
+
+#
+# Error reporting and utilities
+#
+
+sub error(@)
+{
+    print STDERR "$name0:error: ", @_;
+}
+
+# Quotes strings so they can be used in shell commands
+# Note that this implies escaping '$'s and '`'s which may not be appropriate
+# in another context.
+sub shquote_string($)
+{
+    my ($str) = @_;
+    $str =~ s~([\\\$"`])~\\$1~g;
+    return "\"$str\"";
+}
+
+sub argv2shcmd(@)
+{
+    return join(' ', map { /[^a-zA-Z0-9\/.,+_:=-]/ ? shquote_string($_) : $_ } @_);
+}
+
+my $verbose;
+sub run(@)
+{
+    print "Running: ", argv2shcmd(@_), "\n" if ($verbose);
+    return system(@_);
+}
+
+sub write_file($$)
+{
+    my ($filename, $lines) = @_;
+
+    if (open(my $fh, ">", $filename))
+    {
+        print "Creating $filename\n" if ($verbose);
+        print $fh @$lines;
+        close($fh);
+    }
+    else
+    {
+        error("could not open '$filename' for writing: $!\n");
+        exit(1);
+    }
+}
+
+
+#
+# Command line processing
+#
+
+my $opt_all;
+my @opt_dists;
+my $opt_extra;
+my $opt_src;
+my $opt_build;
+my $opt_summary;
+my $opt_podman = 1;
+my $opt_rm;
+my $opt_ref_dir;
+my @quiet;
+my $usage;
+
+sub check_opt_val($$)
+{
+    my ($option, $val) = @_;
+
+    if (defined $val)
+    {
+        error("$option can only be specified once\n");
+        $usage = 2; # but continue processing this option
+    }
+    if (!@ARGV)
+    {
+        error("missing value for $option\n");
+        $usage = 2;
+        return undef;
+    }
+    return shift @ARGV;
+}
+
+while (@ARGV > 0)
+{
+    my $arg = shift @ARGV;
+    if ($arg eq "--all")
+    {
+        $opt_all = 1;
+    }
+    elsif ($arg eq "--extra")
+    {
+        $opt_extra = check_opt_val($arg, $opt_extra);
+    }
+    elsif ($arg eq "--configure")
+    {
+        $opt_src = check_opt_val($arg, $opt_src);
+        $opt_build = "configure";
+    }
+    elsif ($arg eq "--build")
+    {
+        $opt_src = check_opt_val($arg, $opt_src);
+        $opt_build = "build";
+    }
+    elsif ($arg eq "--summary")
+    {
+        $opt_summary = 1;
+    }
+    elsif ($arg eq "--no-podman")
+    {
+        $opt_podman = 0;
+    }
+    elsif ($arg eq "--rm")
+    {
+        $opt_rm = 1;
+    }
+    elsif ($arg eq "--ref-dir")
+    {
+        $opt_ref_dir = check_opt_val($arg, $opt_ref_dir);
+    }
+    elsif ($arg eq "--quiet")
+    {
+        @quiet = ($arg);
+    }
+    elsif ($arg =~ /^-(?:\?|h|-?help)$/)
+    {
+        $usage = 0;
+    }
+    elsif ($arg =~ /^-/)
+    {
+        error("unknown option '$arg'\n");
+        $usage = 2;
+        last;
+    }
+    else
+    {
+        push @opt_dists, $arg;
+    }
+}
+
+if (!defined $usage)
+{
+    if (!$opt_all and !@opt_dists)
+    {
+        error("you must specify distributions to test\n");
+        $usage = 2;
+    }
+    elsif (!@opt_dists)
+    {
+        @opt_dists = sort keys %DISTS;
+    }
+    $opt_extra ||= "";
+    if ($opt_build)
+    {
+        $opt_src ||= "$ENV{HOME}/wine";
+        if (!-f "$opt_src/dlls/winecrt0/Makefile.in")
+        {
+            error("'$opt_src' does not look like a Wine source directory\n");
+            $usage = 2;
+        }
+    }
+    $opt_ref_dir ||= -d "$dir0/$name0.ref" ? "$dir0/$name0.ref" : $dir0;
+    if (!-d $opt_ref_dir)
+    {
+        error("the directory holding the reference files, $opt_ref_dir, does not exist\n");
+        $usage = 2;
+    }
+    if (!$opt_podman)
+    {
+        if ($opt_rm)
+        {
+            error("--no-podman is incompatible with --rm\n");
+            $usage = 2;
+        }
+        if (@opt_dists > 1)
+        {
+            error("--no-podman must be used with a single distribution\n");
+            $usage = 2;
+        }
+    }
+    $verbose = 1 if (!@quiet);
+}
+
+if (defined $usage)
+{
+    if ($usage)
+    {
+        error("try '$name0 --help' for more information\n");
+        exit $usage;
+    }
+    print <<"__EOF__";
+Usage: $name0 [--extra ARGS] [(--configure|--build) SRC]  [--no-podman] [--rm] [--ref-dir DIR] [--quiet] (--all|dist1 ...)
+or     $name0 --summary (--all|dist1 ...)
+or     $name0 --help
+
+Runs $name0 in the specified Podman Linux container, extracting
+a failures and missing packages summary and comparing it against the baseline.
+
+Options:
+  dist1...     A list of distributions to test. This goes on the FROM line of
+               the dockerfile.
+  --all        Test all builtin distributions.
+  --extra ARGS Pass the specified list of extra arguments to $name0.
+  --configure SRC After installing the development packages, run Wine's
+               configure script for both 32-bit and 64-bit builds (but do not
+               build).
+  --build SRC  After installing the development packages, run a full old-style
+               32- and 64-bit WoW build.
+  --summary    Don't run $name0 in the container, just reparse the
+               existing log(s).
+  --no-podman  Run the test commands directly on the host instead of in a
+               container. The distribution name is used to build the name of
+               the summary and log files. This can be used to tests
+               distributions that are available as VMs but not as containers.
+  --rm         Delete the image if successful (otherwise it is left for later
+               analysis).
+  --ref-dir DIR Look for the reference files and place the logs in this folder.
+               By default this is either the directory containing $name0
+               or the $name0.ref folder if it exists.
+  --quiet      Silence the verbose messages.
+  --help, -h   Shows this help message.
+
+In particular this can be used on:
+__EOF__
+    foreach my $dist (sort keys %DISTS)
+    {
+        printf("  %-30s %s\n", $dist, $DISTS{$dist});
+    }
+    exit 0;
+}
+
+
+#
+# Initialization
+#
+
+my $install_dev = "$dir0/$name0";
+if (! -f $install_dev || ! -x $install_dev)
+{
+    error("'$install_dev' does not exist or is not an executable file\n");
+    exit(1);
+}
+
+
+#
+# Run Podman
+#
+
+sub delete_image($)
+{
+    my ($image) = @_;
+
+    if (run("podman", "image", "exists", $image) == 0 and
+        run("podman", "image", "rm", $image))
+    {
+        # Podman already issued a suitable error
+        run("podman", "ps", "--all", "--filter", "ancestor=$image");
+        return 0;
+    }
+    return 1;
+}
+
+sub get_test_image($)
+{
+    my ($dist) = @_;
+    return "$dist:wtdev";
+}
+
+sub run_test($$)
+{
+    my ($from, $dist) = @_;
+
+    my @tests = ("grep -E 'PRETTY_NAME=' /etc/os-release",
+                 "'$install_dev' --yes $opt_extra || true");
+    if ($opt_build)
+    {
+        push @tests, "mkdir wow32 wow64 && ln -s $opt_src src";
+        if ($opt_build eq "configure")
+        {
+            push @tests, "cd 'wow32' && ../src/configure; true";
+            push @tests, "cd 'wow64' && ../src/configure --enable-win64; true";
+        }
+        else
+        {
+            push @tests, "cd 'wow64' && '$dir0/wt-bot' --build --wow; cat ../wow32/wt-bot-make.log wt-bot-make.log; true";
+        }
+    }
+
+    if ($opt_podman)
+    {
+        # Delete the previous run's image
+        my $image = get_test_image($dist);
+        return 0 if (!delete_image($image));
+
+        # Update the underlying Linux container
+        $from = "docker.io/$from" if ($from !~ m~^[^/]+\.[^/]+/~);
+        my $imageid = `podman images --quiet $from 2>/dev/null`;
+        chomp $imageid;
+        if ($imageid)
+        {
+            run("podman", "pull", $from);
+            my $newid = `podman images --quiet $from 2>/dev/null`;
+            chomp $newid;
+            run("podman", "image", "rm", $imageid) if ($newid ne $imageid);
+        }
+
+        # Use paths that will be accessible from the container
+        my $dockerfile = "$dir0/$name0.$$.dockerfile";
+        my @config = ("FROM $from\n",
+                      "WORKDIR /build\n",
+                      "CMD bash -l\n",
+                      "COPY $name0 /build/$name0\n", # for reference
+        );
+        push @config, map { "RUN $_\n" } @tests;
+        write_file($dockerfile, \@config);
+
+        my $cmd = argv2shcmd("podman", "build", "--file", $dockerfile,
+                             "--network=host",
+                             "-v", "$dir0:$dir0",
+                             ($opt_src ? ("-v", "$opt_src:$opt_src") : ()),
+                             @quiet, "-t", $image);
+        run("$cmd >". shquote_string("$dir0/$name0.$$.log") ." 2>&1");
+        move($dockerfile, "$opt_ref_dir/$dist.dockerfile");
+    }
+    else
+    {
+        my $shfile = "$dir0/$name0.$$.sh";
+        my @script = map { "( $_ )\n" } @tests;
+        write_file($shfile, \@script);
+
+        my $cmd = argv2shcmd("sh", $shfile);
+        run("$cmd >". shquote_string("$dir0/$name0.$$.log") ." 2>&1");
+        move($shfile, "$opt_ref_dir/$dist.shfile");
+    }
+    move("$dir0/$name0.$$.log", "$opt_ref_dir/$dist.log");
+}
+
+
+#
+# Log analysis
+#
+
+sub create_summary($)
+{
+    my ($dist) = @_;
+
+    if (open(my $fh, "<", "$opt_ref_dir/$dist.log"))
+    {
+        my @lines;
+        my $header;
+        my $in_epilogue;
+        while (my $line = <$fh>)
+        {
+            if ($line =~ /^(?:UBUNTU_)?PRETTY_NAME=/)
+            {
+                push @lines, $line;
+            }
+            elsif ($line =~ /^\* /)
+            {
+                push @lines, $line;
+                $in_epilogue = 1;
+            }
+            elsif ($in_epilogue and $line =~ /^  /)
+            {
+                push @lines, $line;
+            }
+            elsif ($line =~ /^configure: (?:creating|Finished)/)
+            {
+                ; # ignore those
+            }
+            elsif ($line =~ /^checking build system type/)
+            {
+                $header = !defined $header ? "\n32-bit configure\n" :
+                                             "\n64-bit configure\n";
+            }
+            elsif ($line =~ /^(configure: |Use the )/)
+            {
+                push @lines, $header if ($header);
+                $header = "";
+                push @lines, $line;
+            }
+            elsif ($line =~ /(?::error:|^Error: )/)
+            {
+                push @lines, $line;
+                $in_epilogue = undef;
+            }
+            else
+            {
+                $in_epilogue = undef;
+            }
+        }
+        close($fh);
+
+        write_file("$opt_ref_dir/$dist.summary", \@lines);
+        if (grep /:error:/, @lines)
+        {
+            print "'$dist.summary' contains errors\n";
+            return 0;
+        }
+        return 1;
+    }
+
+    error("could not open '$opt_ref_dir/$dist.log' for reading: $!\n");
+    return 0;
+}
+
+sub check_summary($)
+{
+    my ($dist) = @_;
+
+    # Check the summary against the reference
+
+    if (! -f "$opt_ref_dir/$dist.ref")
+    {
+        print "Check '$dist.summary' and save it as '$dist.ref' if valid\n";
+        return 0;
+    }
+
+    my $rc = run("diff", "-u", "$opt_ref_dir/$dist.summary", "$opt_ref_dir/$dist.ref");
+    if ($rc)
+    {
+        error("the summary changed for $dist. Please review the changes and update $dist.ref if appropriate.\n");
+        return 0;
+    }
+    unlink "$opt_ref_dir/$dist.summary";
+    return 1;
+}
+
+
+my $lf = "";
+my $rc = 0;
+foreach my $dist (@opt_dists)
+{
+    my $from = $dist;
+    $dist =~ s/[^a-zA-Z0-9]/-/g;
+
+    if (!@quiet)
+    {
+        print "${lf}===== $dist =====\n";
+        $lf = "\n";
+    }
+    unlink "$dist.summary";
+    run_test($from, $dist) if (!$opt_summary);
+    if (create_summary($dist) and check_summary($dist))
+    {
+        # Free disk space
+        delete_image(get_test_image($dist)) if (!$opt_summary and $opt_rm);
+        unlink "$opt_ref_dir/$dist.dockerfile";
+    }
+    else
+    {
+        $rc = 1;
+    }
+}
+
+print "All good (no change).\n" if (!$rc);
+exit($rc);
