@@ -194,18 +194,18 @@ wt_create_sos()
 # Debian: Package helpers
 #
 
-# apt_check <action> <pkg> <grep-args>
+# apt_check <action> <pkg> <egrep-args>
 #
-# Checks that the information about <pkg> matches the specified <grep-args>.
-# With the 'show' <action> this can be used that the package actually exists,
-# has the expected version, etc.
+# Checks that the information about <pkg> matches the specified <egrep-args>.
+# With the 'show' <action> this can be used to verify that the package actually
+# exists, has the expected version, etc.
 apt_check()
 {
     local action="$1"
     local pkg="$2"
     shift 2
     [ "$action" = "show" ] && action="show --no-all-versions"
-    LANG= apt-cache $action "$pkg" 2>/dev/null | grep -q "$@"
+    LANG= apt-cache $action "$pkg" 2>/dev/null | grep -E -q "$@"
 }
 
 # apt_addsection <landmark> <section> <packages>
@@ -348,23 +348,23 @@ apt_multi()
     return 2
 }
 
-# apt_blacklist <canary> <version> <pkgdev> <pkglibs>
+# apt_blacklist <canary> <versionre> <pkgdev> <pkglibs>
 #
 # This is meant to deal with cases where multiarch support in <pkgdev> is
 # broken by the <canary> package in a hard to detect way.
 #
-# Checks the version of the <canary> package and if it matches <version>
-# installs the native <pkgdev> package and the 32-bit <pkglibs> package and
-# returns failure.
+# Checks the version of the <canary> package and if it matches the <versionre>
+# regular expression, installs the native <pkgdev> package and the 32-bit
+# <pkglibs> package and returns failure.
 # Otherwise invokes apt_multi() on <pkgdev> || <pkglibs> and returns success.
 apt_blacklist()
 {
     local canary="$1"
-    local version="$2"
+    local versionre="$2"
     local pkgdev="$3"
     local pkglibs="$4"
 
-    if apt_check show "$canary" "Version: $version"
+    if apt_check show "$canary" "Version: $versionre"
     then
         warning "Bad version for $canary, not using multiarch for $pkgdev"
         apt_pkg "$pkgdev"
