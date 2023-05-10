@@ -972,7 +972,26 @@ zypper_multi()
 
 zypper_install()
 {
+    local pkg oldpkginstall
+
     dry_run zypper_retry_lock "" --non-interactive needs-rebooting 3>&1 >/dev/null 2>&1
+
+    # Try to detect and avoid package conflicts
+    oldpkginstall=
+    while [ "$oldpkginstall" != "$pkginstall" ]
+    do
+        oldpkginstall="$pkginstall"
+        zypper --non-interactive install --dry-run $pkginstall >"$TMPDIR/$name0.$$" 2>&1
+
+        for pkg in `sed -e 's/^ *Solution [0-9]*: do not install \(.*\)-[^-]*-[^-]*$/\1/' -e t -e d "$TMPDIR/$name0.$$"`
+        do
+            warning "Blacklisting $pkg because it causes conflicts"
+            pkginstall=`echo "$pkginstall " | sed -e "s/ $pkg / /g"`
+            pkgbroken="$pkgbroken $pkg"
+        done
+    done
+    rm "$TMPDIR/$name0.$$"
+
     dry_run zypper install $opt_yes `wt_pretty_list $pkginstall` || exit 1
     echo
 }
