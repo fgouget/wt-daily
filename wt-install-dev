@@ -972,7 +972,7 @@ zypper_multi()
 
 zypper_install()
 {
-    dry_run zypper_retry_lock "" needs-rebooting 3>&1 >/dev/null 2>&1
+    dry_run zypper_retry_lock "" --non-interactive needs-rebooting 3>&1 >/dev/null 2>&1
     dry_run zypper install $opt_yes `wt_pretty_list $pkginstall` || exit 1
     echo
 }
