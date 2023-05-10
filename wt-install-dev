@@ -717,9 +717,16 @@ apt_workarounds()
 
 apt_epilogue()
 {
-    if wt_explain_bad_pkgs "faudio-dev"
+    if wt_explain_bad_pkgs "libfaudio-dev"
     then
         echo "* FAudio is only available on distributions derived from Debian 11+."
+        echo
+    fi
+    if wt_explain_bad_pkgs "libfaudio-dev:i386"
+    then
+        echo "* Wine does not use the distribution's FAudio development packages since"
+        echo "  2021-10 so feel free to ignore this issue. For older versions, the"
+        echo "  32-bit libfaudio-dev package is missing."
         echo
     fi
     if wt_explain_bad_pkgs "libgstreamer-plugins-base1.0-dev"
