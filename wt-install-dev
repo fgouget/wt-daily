@@ -64,8 +64,8 @@ wt_get_bad_pkgs()
 wt_remove_bad_pkg()
 {
     local pkg="$1"
-    pkgbroken=`echo "$pkgbroken " | sed -e "s/ $pkg[^ ]*/ /g"`
-    pkgmissing=`echo "$pkgmissing " | sed -e "s/ $pkg[^ ]*/ /g"`
+    pkgbroken=`echo "$pkgbroken " | sed -e "s/ $pkg / /g"`
+    pkgmissing=`echo "$pkgmissing " | sed -e "s/ $pkg / /g"`
 }
 
 wt_explain_bad_pkgs()
@@ -150,15 +150,15 @@ wt_create_so()
     return $rc
 }
 
-# wt_create_sos <pkgdev> <sodev1> ...
+# wt_create_sos <pkgdevre> <sodev1> ...
 #
 # Create the development library symlinks in the <sodev1> ... list using
-# wt_create_so(). If they all succeeded, remove <pkgdev> from the broken and
-# missing packages lists.
+# wt_create_so(). If they all succeeded, remove the packages matching the
+# <pkgdevre> regular expression from the broken and missing packages lists.
 wt_create_sos()
 {
-    local lib success
-    local pkg="$1"
+    local bad_pkgs lib success
+    local pkgre="$1"
     shift
 
     fixed=""
@@ -174,8 +174,12 @@ wt_create_sos()
     done
     if [ "$fixed" = "1" ]
     then
-        pkgworkaround="$pkgworkaround "`wt_get_bad_pkgs "$pkg"`
-        wt_remove_bad_pkg "$pkg"
+        bad_pkgs=`wt_get_bad_pkgs "$pkgre"`
+        for pkg in $bad_pkgs
+        do
+            wt_remove_bad_pkg "$pkg"
+        done
+        pkgworkaround="$pkgworkaround $bad_pkgs"
     fi
 }
 
