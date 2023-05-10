@@ -885,7 +885,11 @@ zypper_addrepo()
         # Also disable auto-refresh to limit future usage.
         options="--no-gpgcheck"
     fi
-    dry_run zypper addrepo $options "$url"
+    preopt=""
+    [ -n "$opt_yes" ] && preopt="--non-interactive"
+    dry_run zypper $preopt addrepo $options "$url"
+    [ $? -ne 0 ] && return 1
+
     zypper_newrepos="$zypper_newrepos $repo_alias"
     return 0
 }
