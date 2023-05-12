@@ -1295,7 +1295,7 @@ zypper_epilogue()
         echo "  https://software.opensuse.org/package/prelink"
         echo
     fi
-    if wt_explain_bad_pkgs "vkd3d-devel"
+    if wt_explain_bad_pkgs "vkd3d-devel" "vkd3d-devel-32bit" "libvkd3d1" "libvkd3d1-32bit"
     then
         echo "* Wine does not use the distribution's vkd3d development packages since 2022-03"
         echo "  so feel free to ignore this issue. For older versions vkd3d is only available"
