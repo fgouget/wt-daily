@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2020 Francois Gouget
+# Copyright (C) 2020-2023 Francois Gouget
 #
 # Installs the packages needed for Wine development.
 #
@@ -574,7 +574,7 @@ apt_wine()
     apt_pkg    make
     apt_multi  ocl-icd-opencl-dev
     apt_multi  oss4-dev
-    apt_pkg    prelink
+    apt_pkg    prelink # Not used since Wine 4a0f3fbcb587 (2023-02-27)
 
     # For libnetapi (see bug 961867)
     apt_check depends samba-libs:i386 -E 'Depends: python3?-talloc:i386'
@@ -738,6 +738,11 @@ apt_epilogue()
         echo "  libgstreamer-plugins-base1.0-dev:i386 cannot be installed because some of its"
         echo "  dependencies do not support multiarch. But this issue has been fixed in"
         echo "  Debian 10 which may provide a viable workaround."
+        echo
+    fi
+    if wt_explain_bad_pkgs "prelink"
+    then
+        echo "* Wine does not use prelink since 2023-02 so feel free to ignore this issue."
         echo
     fi
     if wt_explain_bad_pkgs "ttf-mscorefonts-installer"
@@ -1034,7 +1039,7 @@ zypper_wine()
     zypper_pkg   make
     zypper_pkg   mingw32-cross-gcc
     zypper_pkg   mingw64-cross-gcc
-    zypper_pkg   prelink
+    zypper_pkg   prelink # Not used since Wine 4a0f3fbcb587 (2023-02-27)
 
     # Libraries
     zypper_multi alsa-devel
@@ -1291,7 +1296,8 @@ zypper_epilogue()
     fi
     if wt_explain_bad_pkgs "prelink"
     then
-        echo "* It may be possible to use the RHEL prelink package."
+        echo "* Wine does not use prelink since 2023-02 so feel free to ignore this issue."
+        echo "  For older versions, it may be possible to use the RHEL prelink package."
         echo "  https://software.opensuse.org/package/prelink"
         echo
     fi
