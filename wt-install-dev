@@ -1012,6 +1012,40 @@ zypper_install()
     echo
 }
 
+# zypper_create_links <pc1> ...
+#
+# Provide a 32-bit file for missing -dev-32bit packages by symlinking it to the
+# 64-bit one on the assumption they should be identical. This obviously can
+# only work some some files like headers and pkgconfig files and only in some
+# cases.
+# Updating the broken and missing packages lists is left to the caller and will
+# typically be taken care of by a subsequent wt_create_sos() call.
+zypper_create_links()
+{
+    local file rc
+
+    rc=0
+    for file in "$@"
+    do
+        [ -f "/usr/lib/$file" ] && continue
+        if [ ! -f "/usr/lib64/$file" ]
+        then
+            error "could not find the /usr/lib64/$file symlink target"
+            rc=1
+        elif [ ! -d `dirname "/usr/lib/$file"` ] &&
+             ! dry_run mkdir -p `dirname "/usr/lib/$file"`
+        then
+            error "could not create the /usr/lib/$file parent directory"
+            rc=1
+        elif ! dry_run ln -s -f "/usr/lib64/$file" "/usr/lib/$file"
+        then
+            error "could not create the /usr/lib/$file symlink"
+            rc=1
+        fi
+    done
+    return $rc
+}
+
 
 #
 # zypper: Wine dependencies
@@ -1255,6 +1289,7 @@ zypper_workarounds()
         wt_create_sos vulkan-devel-32bit libvulkan
 
         # Needed for openSUSE Leap 15.4
+        zypper_create_links "dbus-1.0/include/dbus/dbus-arch-deps.h"
         wt_create_sos "(libudev|systemd)-devel-32bit" libudev
         wt_create_sos pcsc-lite-devel-32bit libpcsclite
     fi
