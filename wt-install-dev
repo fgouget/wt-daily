@@ -910,14 +910,17 @@ zypper_addrepo()
     return 0
 }
 
+# zypper_check <action> <pkg> <egrep-args>
+#
+# Checks that the information about <pkg> matches the specified <egrep-args>.
+# With the 'info' <action> this can be used to verify that the package actually
+# exists, has the expected version, etc.
 zypper_check()
 {
-    local pkg="$1"
-    local field="$2"
-    local value="$3"
-    shift 3
-    LANG= zypper --non-interactive info "$@" "$pkg" 2>/dev/null |
-        grep -E -q "$field *: *$value"
+    local action="$1"
+    local pkg="$2"
+    shift 2
+    LANG= zypper --non-interactive $action "$pkg" 2>/dev/null | grep -E -q "$@"
 }
 
 # zypper_pkg <pkg1> ...
