@@ -1261,10 +1261,12 @@ zypper_epilogue()
         echo "  https://wiki.winehq.org/OpenSUSE#Build_Tools_and_Dependencies"
         echo
     fi
-    if wt_explain_bad_pkgs "jxrlib-32bit"
+    if wt_explain_bad_pkgs "jxrlib-devel-32bit" "libjpegxr0-32bit" "libjxrglue0-32bit"
     then
-        echo "* Both jxrlib-devel-32bit and jxrlib-32bit are missing so there is no"
-        echo "  32-bit support at all for JPEG XR images. Try a newer distributution release."
+        echo "* Wine does not use the distribution's jxrlib packages since 2021-10 so feel free"
+        echo "  to ignore this issue. For older versions, both jxrlib-devel-32bit and"
+        echo "  jxrlib-32bit are missing so there is no 32-bit support at all for JPEG XR"
+        echo "  images. Try a newer distributution release."
         echo
     fi
     if [ "$opt_wine" = "1" -a "$opt_packages" = "1" ]
