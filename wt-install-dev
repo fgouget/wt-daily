@@ -1055,7 +1055,11 @@ zypper_wine()
     # Libraries
     zypper_multi alsa-devel
     zypper_multi libcapi20-devel capi4linux-devel
+
     zypper_multi cups-devel
+    # Missing dependency in -devel-32bit on openSUSE Tumbleweed
+    zypper_multi libnettle-devel
+
     zypper_multi cyrus-sasl-devel
     zypper_multi dbus-1-devel
 
