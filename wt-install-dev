@@ -675,7 +675,10 @@ apt_workarounds()
         # Work around the missing or broken multiarch support where possible
 
         # Needed for all Debian versions so far
-        wt_create_sos libvkd3d-dev libvkd3d libvkd3d-shader libvkd3d-utils
+        if apt_is_installed libvkd3d1:i386
+        then
+            wt_create_sos libvkd3d-dev libvkd3d libvkd3d-shader libvkd3d-utils
+        fi
 
         # Needed for Debian 10
         wt_create_sos libsdl2-dev libSDL2-2.0 # Broken up to 2.0.9
