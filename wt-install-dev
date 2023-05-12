@@ -1140,7 +1140,7 @@ zypper_wine()
     zypper_multi openldap2-devel
 
     # Missing -32bit packages in openSUSE Leap but unused by Wine so far
-    zypper_multi pcsclite-devel
+    zypper_multi pcsc-lite-devel || zypper_multi libpcsclite1
 
     zypper_multi sane-backends-devel
     # Missing dependency in -devel-32bit in openSUSE Leap 15.1 (bug 1172301)
@@ -1228,6 +1228,9 @@ zypper_workarounds()
         wt_create_sos Mesa-libGL-devel-32bit libGL
         wt_create_sos ocl-icd-devel-32bit libOpenCL
         wt_create_sos vulkan-devel-32bit libvulkan
+
+        # Needed for openSUSE Leap 15.4
+        wt_create_sos pcsc-lite-devel-32bit libpcsclite
     fi
 }
 
