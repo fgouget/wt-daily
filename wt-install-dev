@@ -1237,10 +1237,10 @@ zypper_workarounds()
 
 zypper_epilogue()
 {
-    if wt_explain_bad_pkgs "capi4linux-devel-32bit" "libcapi20-devel-32bit"
+    if wt_explain_bad_pkgs "capi4linux-devel" "capi4linux-devel-32bit" "libcapi20-devel" "libcapi20-devel-32bit"
     then
-        echo "* openSUSE 15.3 and Tumbleweed are missing 32-bit support for libcapi20. This"
-        echo "  only impacts the rare Windows applications that would use ISDN phone lines."
+        echo "* openSUSE Leap 15.3+ is missing all support for libcapi20. This only impacts"
+        echo "  the rare Windows applications that would use ISDN phone lines."
         echo "  https://bugzilla.opensuse.org/show_bug.cgi?id=1191039"
         echo "  https://wiki.winehq.org/Building_Wine#Satisfying_Build_Dependencies"
         echo
