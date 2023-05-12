@@ -1101,7 +1101,7 @@ zypper_wine()
 
     zypper_pkg   libunwind-devel # Wine only needs the 64-bit library
 
-    zypper_multi libudev-devel
+    zypper_multi libudev-devel systemd-devel || zypper_multi libudev1
     zypper_multi libusb-1_0-devel
 
     zypper_multi libv4l-devel
@@ -1230,6 +1230,7 @@ zypper_workarounds()
         wt_create_sos vulkan-devel-32bit libvulkan
 
         # Needed for openSUSE Leap 15.4
+        wt_create_sos "(libudev|systemd)-devel-32bit" libudev
         wt_create_sos pcsc-lite-devel-32bit libpcsclite
     fi
 }
