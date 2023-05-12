@@ -1068,6 +1068,9 @@ zypper_wine()
     zypper_multi fontconfig
 
     zypper_multi freetype2-devel
+    # Missing dependency in -devel-32bit on openSUSE Tumbleweed
+    zypper_multi libbz2-devel
+
     zypper_multi glibc-devel
     zypper_multi glu-devel # Not used since Wine ec55b1c271ae (2020-11-12)
 
