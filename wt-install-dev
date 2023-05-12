@@ -281,6 +281,14 @@ apt_pkg()
     return 1
 }
 
+# apt_is_installed <pkg1> ...
+#
+# Returns success if the specified packages are all installed.
+apt_is_installed()
+{
+    dpkg -l "$@" >/dev/null 2>&1
+}
+
 # apt_multi [--test|--if-0 <rc>|--if-not-0 <rc>] <pkg1> ...
 #
 # Schedules installation of both the 32- and 64-bit versions of the package
@@ -681,7 +689,7 @@ apt_workarounds()
         wt_create_sos libpcap0.8-dev libpcap
         wt_create_sos libpcsclite-dev libpcsclite
         wt_create_sos libtiff-dev libtiff
-        if ! dpkg -l libgstreamer-plugins-base1.0-dev:i386 >/dev/null 2>&1
+        if ! apt_is_installed libgstreamer-plugins-base1.0-dev:i386
         then
             apt_dev_workaround libgstreamer-plugins-base1.0-dev
         fi
