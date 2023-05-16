@@ -24,6 +24,9 @@ So to install the development packages simply run wt-install-dev as
 root:
 
   sudo ./wt-install-dev
+or
+  wget https://gitlab.winehq.org/fgouget/wt-daily/-/raw/master/wt-install-dev
+  sudo sh ./wt-install-dev
 
 
 Then build Wine normally:
