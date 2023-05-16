@@ -1,17 +1,47 @@
 1. Introduction
 ---------------
 
-This repository contains a set of tools to allow running the Wine test
-suite with minimal effort and submit the results to
-http://test.winehq.org
+This repository contains a set of tools to allow building Wine and
+running the Wine test suite with minimal effort and submit the results
+to http://test.winehq.org
 
 References:
  * Wine      http://www.winehq.org
  * WineTest  http://wiki.winehq.org/ConformanceTests
 
 
-2. QuickStart
--------------
+2. Building Wine
+----------------
+
+The hardest part is installing all the development dependencies so one
+can build both the 32-bit and 64-bit Wine in order to be able to run
+both 32-bit and 64-bit Windows applications. Thankfully all the details
+of working around missing 32-bit development packages, and multi-arch
+bugs is handled by the wt-install-dev script for Debian, Ubuntu,
+openSUSE, Elementary OS, Pop! OS, and most likely various derivatives.
+
+So to install the development packages simply run wt-install-dev as
+root:
+
+  sudo ./wt-install-dev
+
+
+Then build Wine normally:
+
+* By hand using the old WoW approach:
+  mkdir wow32 wow64
+  cd wow64 && ../wine/configure --enable-win64 && make
+  cd ../wow32 && ../wine/configure --with-wine64=../wow64 && make
+
+* Or with wt-bot using the old WoW approach:
+  mkdir wow32 wow64 && cd wow64 && wt-bot --build --wow
+
+* By hand using the new WoW approach:
+  cd wine && ./configure --enable-archs=i386,x86_64 && make
+
+
+3. Running the tests
+--------------------
 
 The main script is wt-daily. Its purpose is to "orchestrate all the
 daily WineTest runs and related tasks."
@@ -52,7 +82,7 @@ Now you can totally stop reading here. But there's a ton more that the
 script can do. Read on if you want to discover more.
 
 
-3. Creative uses
+4. Creative uses
 ----------------
 
 The thing to remember is that the 'configuration file' is actually a
@@ -90,7 +120,7 @@ You can even add command line options to turn these extra tasks on/off.
 (see is_extra_option() and  print_extra_usage() in wt-daily.config.template)
 
 
-4. The other tools
+5. The other tools
 ------------------
 
 The repository also contains a number or scripts that you will likely
@@ -125,7 +155,7 @@ wt-nice        Runs the specified command with the lowest possible CPU
 wt-flock       A portable replacement for flock.
 
 
-5. Running the tests on Windows
+6. Running the tests on Windows
 -------------------------------
 
 wt-daily can also help you automate running the tests on your Windows
