@@ -483,10 +483,10 @@ apt_wine()
     # The FontConfig development package can only be installed if the FreeType
     # one supports multiarch
     apt_multi libfreetype6
-    apt_multi libfreetype6-dev
-    apt_multi --if-0 $? libfontconfig1-dev || apt_multi libfontconfig1
+    apt_multi libfreetype-dev libfreetype6-dev
+    apt_multi --if-0 $? libfontconfig-dev libfontconfig1-dev || apt_multi libfontconfig1
 
-    apt_multi libgl1-mesa-dev
+    apt_multi libgl-dev libgl1-mesa-dev
     apt_multi libglu1-mesa-dev # Not used since Wine ec55b1c271ae (2020-11-12)
 
     # The GPhoto2 development package can only be installed if the Exif
@@ -498,7 +498,7 @@ apt_wine()
 
     # The GnuTLS development package can only be installed if the idn2 one
     # one supports multiarch
-    apt_multi --test libidn2-0-dev
+    apt_multi --test libidn2-dev libidn2-0-dev
     apt_multi --if-0 $? libgnutls28-dev || apt_multi libgnutls30
 
     apt_multi libjpeg62-turbo-dev libjpeg-turbo8-dev # Not used since Wine a6ac035a7454 (2021-10-19)
@@ -507,7 +507,7 @@ apt_wine()
     apt_multi liblcms2-dev # Not used since Wine 5c4c272a2606 (2021-10-19)
     apt_multi libldap-dev libldap2-dev
     apt_multi libmpg123-dev # Not used since Wine 5329da61ac51 (2021-10-21)
-    apt_multi libncurses5-dev # Not used since Wine 26c715f85b49 (2020-09-22)
+    apt_multi libncurses-dev libncurses5-dev # Not used since Wine 26c715f85b49 (2020-09-22)
 
     # The GStreamer development package can only be installed if the liborc
     # one supports multiarch
