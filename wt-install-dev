@@ -427,7 +427,7 @@ apt_dev_workaround()
     rm -rf pkgextract
     if [ $rc -eq 0 ]
     then
-        wt_remove_bad_pkg "$pkg"
+        wt_remove_bad_pkg "$pkg:i386"
     fi
     return $rc
 }
