@@ -676,6 +676,7 @@ apt_wt_daily()
 
 apt_tb_wine()
 {
+    apt_pkg genisoimage
     apt_pkg upx-ucl
 }
 
