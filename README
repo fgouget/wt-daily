@@ -51,7 +51,7 @@ daily WineTest runs and related tasks."
 
 Here's the quickstart guide:
 
-git clone https://github.com/fgouget/wt-daily.git
+git clone https://gitlab.winehq.org/fgouget/wt-daily
 cd wt-daily
 cp wt-daily.config.template wt-daily.config
 vi wt-daily.config
