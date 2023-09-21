@@ -614,6 +614,7 @@ apt_wine_extra()
 
 apt_wine_tests()
 {
+    local pkg
     apt_addsection ttf-mscorefonts-installer contrib "the Microsoft TrueType fonts packages" &&
         dry_run apt-get update
 
@@ -630,6 +631,12 @@ apt_wine_tests()
     apt_multi --if-0 $? gstreamer1.0-plugins-ugly
 
     apt_multi libnss-mdns
+    # For each 64-bit libnss module, its 32-bit equivalent is needed too for
+    # the 32-bit tests:
+    for pkg in $(dpkg -l libnss-*:amd64 | sed -e 's/^.* \([a-zA-Z0-9-]*\):amd64.*$/\1/' -e t -e d)
+    do
+        apt_multi $pkg
+    done
 
     # The MIDI tests have to go through ALSA which needs the PulseAudio plugin
     apt_multi libasound2-plugins
