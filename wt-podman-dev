@@ -263,7 +263,7 @@ __EOF__
 # Initialization
 #
 
-my $install_dev = "$dir0/$name0";
+my $install_dev = "$dir0/wt-install-dev";
 if (! -f $install_dev || ! -x $install_dev)
 {
     error("'$install_dev' does not exist or is not an executable file\n");
@@ -338,7 +338,7 @@ sub run_test($$)
         my @config = ("FROM $from\n",
                       "WORKDIR /build\n",
                       "CMD bash -l\n",
-                      "COPY $name0 /build/$name0\n", # for reference
+                      "COPY wt-install-dev /build/\n", # for reference
         );
         push @config, map { "RUN $_\n" } @tests;
         write_file($dockerfile, \@config);
