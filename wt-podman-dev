@@ -408,7 +408,21 @@ sub create_summary($)
                 $header = "";
                 push @lines, $line;
             }
+            # Collect errors
             elsif ($line =~ /(?::error:|^Error: )/)
+            {
+                push @lines, $line;
+                $in_epilogue = undef;
+            }
+            # apt-get (the 'immediate configuration' errors don't seem to matter)
+            elsif ($line =~ /^E:/ and
+                   $line !~ /^E: Could not (configure|perform immediate configuration)/)
+            {
+                push @lines, $line;
+                $in_epilogue = undef;
+            }
+            # zypper
+            elsif ($line =~ /^Problem:/)
             {
                 push @lines, $line;
                 $in_epilogue = undef;
