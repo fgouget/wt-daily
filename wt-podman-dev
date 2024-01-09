@@ -12,6 +12,8 @@ my $name0 = basename($0);
 my $dir0 = dirname(Cwd::realpath($0));
 
 my %DISTS = (
+    "debian:buster" => "Debian 10 release",
+    "debian:bullseye" => "Debian 11 release",
     "debian:stable" => "Latest stable release",
     "debian:testing" => "Next/rolling release",
 
