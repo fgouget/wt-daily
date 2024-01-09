@@ -797,8 +797,9 @@ apt_epilogue()
     fi
     if wt_explain_bad_pkgs "oss4-dev"
     then
-        echo "* OSS4 is no longer available in Debian 11 but is obsolete anyway."
-        echo "  https://wiki.winehq.org/Building_Wine#Satisfying_Build_Dependencies"
+        echo "* OSS4 is no longer available in Debian but is obsolete anyway."
+        echo "  If really required, it is available in the Debian multimedia repository:"
+        echo "  deb-multimedia.org."
         echo
     fi
     if wt_explain_bad_pkgs "samba-dev:i386"
