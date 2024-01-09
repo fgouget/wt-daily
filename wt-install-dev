@@ -580,6 +580,8 @@ apt_wine()
     apt_multi libxcursor-dev
     apt_multi libxi-dev
     apt_multi libxinerama-dev
+    apt_multi libxkbcommon-dev
+    apt_multi libxkbregistry-dev
 
     # The XML and XSLT development packages can only be installed if the ICU
     # one supports multiarch
@@ -770,6 +772,11 @@ apt_epilogue()
         echo "  libgstreamer-plugins-base1.0-dev:i386 cannot be installed because some of its"
         echo "  dependencies do not support multiarch. But this issue has been fixed in"
         echo "  Debian 10 which may provide a viable workaround."
+        echo
+    fi
+    if wt_explain_bad_pkgs "libxkbregistry-dev"
+    then
+        echo "* libxkbregistry is not available on Debian 10 and older so Wayland is not supported."
         echo
     fi
     if wt_explain_bad_pkgs "prelink"
@@ -1236,6 +1243,13 @@ zypper_wine()
     zypper_multi libXfixes-devel
     zypper_multi libXi-devel
     zypper_multi libXinerama-devel
+
+    zypper_multi libxkbcommon-devel
+    # Missing *-32bit packages in openSUSE Leap (bug 1218639)
+    # and -devel-32bit package in Tumbleweed (bug 1218640)
+    zypper_multi libxkbregistry-devel
+    zypper_multi libxkbregistry0
+
     zypper_multi libXxf86vm-devel
     zypper_multi libxml2-devel # Not used since Wine bca1b7f2faeb (2021-10-20)
     zypper_multi libXrandr-devel
@@ -1374,6 +1388,13 @@ zypper_workarounds()
             # GStreamer needs this one through GLib2
             # and autoconf mostly needs the pkgconfig workaround
             zypper_create_pcs libpcre2-8 && wt_create_sos pcre2-devel-32bit libpcre2-8
+        fi
+
+        # Needed for Wayland on openSUSE Tumbleweed
+        if zypper_is_installed libxkbregistry0-32bit &&
+           zypper_is_installed libxkbregistry-devel
+        then
+            zypper_create_pcs xkbregistry && wt_create_sos libxkbregistry-devel-32bit libxkbregistry
         fi
     fi
 }
