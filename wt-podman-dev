@@ -231,7 +231,7 @@ Options:
   dist1...     A list of distributions to test. This goes on the FROM line of
                the dockerfile.
   --all        Test all builtin distributions.
-  --extra ARGS Pass the specified list of extra arguments to $name0.
+  --extra ARGS Pass the specified list of extra arguments to wt-install-dev.
   --configure SRC After installing the development packages, run Wine's
                configure script for both 32-bit and 64-bit builds (but do not
                build).
