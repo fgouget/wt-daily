@@ -774,6 +774,11 @@ apt_epilogue()
         echo "  Debian 10 which may provide a viable workaround."
         echo
     fi
+    if apt_check show "libpcap0.8" "Version: 1\\.[2-9]"
+    then
+        echo "* libpcap is likely too old and missing pcap_init(), making it unusable."
+        echo
+    fi
     if wt_explain_bad_pkgs "libxkbregistry-dev"
     then
         echo "* libxkbregistry is not available on Debian 10 and older so Wayland is not supported."
