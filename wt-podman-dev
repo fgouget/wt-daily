@@ -423,8 +423,8 @@ sub create_summary($)
                 $in_epilogue = undef;
             }
             # apt-get (the 'immediate configuration' errors don't seem to matter)
-            elsif ($line =~ /^E:/ and
-                   $line !~ /^E: Could not (configure|perform immediate configuration)/)
+            elsif ($line =~ /^(?:E:|dpkg: error |trying to overwrite )/ and
+                   $line !~ /^E: Could not (?:configure|perform immediate configuration)/)
             {
                 push @lines, $line;
                 $in_epilogue = undef;
