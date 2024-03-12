@@ -486,6 +486,7 @@ apt_wine()
     apt_multi libfreetype-dev libfreetype6-dev
     apt_multi --if-0 $? libfontconfig-dev libfontconfig1-dev || apt_multi libfontconfig1
 
+    apt_multi libegl-dev
     apt_multi libgl-dev libgl1-mesa-dev
     apt_multi libglu1-mesa-dev # Not used since Wine ec55b1c271ae (2020-11-12)
 
