@@ -1293,10 +1293,9 @@ zypper_wine()
     # sane-backends in Leap 15.x to libsane1 in Tumbleweed.
     zypper_multi libsane1 sane-backends
 
-    # unixODBC-devel only contains the headers and pkg-config files while
-    # the .so symlinks are in unixODBC and unixODBC-32bit. While totally non
-    # standard this means there is no need for a unixODBC-devel-32bit package.
-    zypper_pkg   unixODBC-devel
+    # unixODBC-devel-32bit only contains the pkg-config files (so no headers
+    # and .so symlinks) but it is still needed.
+    zypper_multi unixODBC-devel
     zypper_multi unixODBC
 
     # vkd3d is not used since Wine 24432a24d5e9 (2022-03-03)
